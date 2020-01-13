@@ -45,8 +45,8 @@ ok(run_fib("fib64", 10) == 55, "fib64(10)");
 ok(run_fib("fib64", 25) == 75025, "fib64(25)");
 
 # For bad input, print a message starting "Usage:"
-ok(run_bad("./fib32") =~ /Usage/i, "fib32()");
-ok(run_bad("./fib32 -7") =~ /Usage/i, "fib32(-7)");
+ok(run_bad("./fib64") =~ /Usage/i, "fib64()");
+ok(run_bad("./fib64 -7") =~ /Usage/i, "fib64(-7)");
 
 ok(run_fib("fib32", 0) == 0, "fib32(0)");
 ok(run_fib("fib32", 1) == 1, "fib32(1)");

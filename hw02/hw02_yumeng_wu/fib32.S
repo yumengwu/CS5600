@@ -60,12 +60,13 @@ main:
     push $output_fmt 
     call printf 
     add $8, %esp 
+    mov $0, %eax 
     jmp end
 print_usage:
     push $usage_string
     call printf
+    mov $1, %eax 
 end:
-    mov $0, %eax
     leave
     ret
 
