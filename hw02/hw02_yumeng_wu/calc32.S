@@ -1,10 +1,8 @@
 .global main
 .data
     usage_msg: .string "Usage: ./calc N op N\n"
-    test_str: .string "test\n"
-    test_int: .string "%ld\n"
-    display_str: .string "%s\n"
-    test_char: .string "%c\n"
+    output_one_string: .string "%s "
+    output_int: .string "= %ld\n"
 .text
 calc:
     enter $0, $0
@@ -132,11 +130,23 @@ main:
     push %esi 
     call calc 
     add $12, %esp 
-    push %eax 
-    push $test_int 
+    mov %eax, %esi 
+    push 4(%edi) 
+    push $output_one_string 
     call printf 
     add $8, %esp 
-    mov %eax, %esi 
+    push 8(%edi) 
+    push $output_one_string 
+    call printf 
+    add $8, %esp 
+    push 12(%edi) 
+    push $output_one_string 
+    call printf 
+    add $8, %esp 
+    push %esi 
+    push $output_int 
+    call printf 
+    add $8, %esp 
     mov $0, %eax 
     jmp main_end 
 output_usage:
