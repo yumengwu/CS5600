@@ -1,6 +1,8 @@
 .global main
 .data
     usage_msg: .string "Usage: ./ccalc N op N\n"
+    output_one_string: .string "%s "
+    output_number: .string "= %d\n"
     test_str: .string "%s\n"
     test_int: .string "%d\n"
 .text
@@ -114,8 +116,21 @@ main:
     mov %r13, %rdi 
     mov %r14, %rsi 
     call calc 
-    mov $test_int, %rdi 
-    mov %rax, %rsi 
+    mov %rax, %r15
+    mov $output_one_string, %rdi 
+    mov 8(%r12), %rsi 
+    mov $0, %rax 
+    call printf 
+    mov $output_one_string, %rdi 
+    mov 16(%r12), %rsi 
+    mov $0, %rax 
+    call printf 
+    mov $output_one_string, %rdi 
+    mov 24(%r12), %rsi 
+    mov $0, %rax 
+    call printf 
+    mov $output_number, %rdi 
+    mov %r15, %rsi 
     mov $0, %rax 
     call printf 
     mov $0, %rax 
