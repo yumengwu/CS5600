@@ -3,11 +3,12 @@
     usage_msg: .string "Usage: ./ccalc N op N\n"
     output_one_string: .string "%s "
     output_number: .string "= %d\n"
-    test_str: .string "%s\n"
-    test_int: .string "%d\n"
 .text
+
+/* calculate */
 calc:
     enter $0, $0
+    /* compare operator */
     cmp $43, %rdx 
     je calcPlus 
     cmp $45, %rdx 
@@ -36,6 +37,7 @@ calcEnd:
     leave 
     ret 
 
+/* Check if given string is a valid number. A valid number can only cantain 0~9. */
 checkNumber:
     enter $0, $0
     mov $0, %rcx 
@@ -58,6 +60,7 @@ checkNumberEnd:
     leave 
     ret 
 
+/* Check if given string is a valid operator. */
 checkOp:
     enter $0, $0
     mov $0, %rax 
@@ -65,16 +68,16 @@ checkOp:
     cmp $0, %al 
     jne checkOpFalse 
     mov 0(%rdi), %al 
-    // +
+    /* + */
     cmp $43, %al 
     je checkOpTrue 
-    // -
+    /* - */
     cmp $45, %al 
     je checkOpTrue 
-    // *
+    /* * */
     cmp $42, %al 
     je checkOpTrue 
-    // /
+    /* / */
     cmp $47, %al 
     je checkOpTrue 
     jmp checkOpFalse 
@@ -93,22 +96,27 @@ main:
     jne output_usage 
     mov %rsi, %r12 
     mov 8(%r12), %rdi 
+    /* check the first number */
     call checkNumber 
     cmp $0, %rax 
     je output_usage 
     mov 24(%r12), %rdi 
+    /* check the second number */
     call checkNumber 
     cmp $0, %rax 
     je output_usage 
     mov 16(%r12), %rdi 
+    /* check operator */
     call checkOp 
     cmp $0, %rax 
     je output_usage 
     mov 8(%r12), %rdi 
-    call atoi
+    /* convert the first number */
+    call atol
     mov %rax, %r13 
     mov 24(%r12), %rdi 
-    call atoi 
+    /* convert the second number */
+    call atol 
     mov %rax, %r14 
     mov 16(%r12), %rcx 
     mov $0, %rdx 

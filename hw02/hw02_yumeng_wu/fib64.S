@@ -1,21 +1,28 @@
-  .global main
-
-  .text
+.global main
+.data
+    output_fmt:  .string "fib(%ld) = %ld\n"
+    output_err:  .string "Usage: ./fib N, where N >= 0\n"
+.text
+/* fibonacci function */
 fib:
     enter $0, $0
+    /* if (num == 0) */
     cmp $0, %rdi 
     jle fib_le_0 
+    /* if (num == 1) */
     cmp $1, %rdi
     je fib_e_1 
     push %rbx 
     push %rcx 
     mov %rdi, %rcx 
     dec %rcx 
-    mov %rcx, %rdi  
+    mov %rcx, %rdi 
+    /* calculate fib(num - 1) */
     call fib 
     mov %rax, %rbx 
     dec %rcx 
     mov %rcx, %rdi 
+    /* calculate fib(num - 2) */
     call fib 
     add %rbx, %rax 
     pop %rcx 
@@ -32,15 +39,6 @@ fibend:
     ret 
 main:
     enter $0, $0
-/*
-  mov 8(%rsi), %rdi
-  call atol
-
-  mov %rax, %rsi
-  mov $output_fmt, %rdi
-  mov $0, %al
-  call printf
-*/ 
     cmp $2, %rdi 
     jne output_error
     mov 8(%rsi), %rdi 
@@ -67,7 +65,3 @@ output_error:
 end:
     leave
     ret
-
-  .data
-output_fmt:  .string "fib(%ld) = %ld\n"
-output_err:  .string "Usage: ./fib N, where N >= 0\n"

@@ -2,15 +2,17 @@
 .data
     usage_msg: .string "Usage: ./calc N op N\n"
     output_one_string: .string "%s "
-    output_int: .string "= %ld\n"
+    output_number: .string "= %ld\n"
 .text
+
+/* calculate */
 calc:
     enter $0, $0
-    // First number 
+    /* get first number */
     mov 8(%ebp), %ebx 
-    // Second number 
+    /* get second number */
     mov 12(%ebp), %ecx 
-    // Operator
+    /* get operator */
     mov 16(%ebp), %edx 
     cmp $43, %edx 
     je calcPlus 
@@ -40,6 +42,7 @@ calcEnd:
     leave 
     ret 
 
+/* Check if given string is a valid number. A valid number can only cantain 0~9. */
 checkNumber:
     enter $0, $0
     mov 8(%ebp), %edx
@@ -64,24 +67,25 @@ checkNumberEnd:
     leave 
     ret 
 
+/* Check if given string is a valid operator. */
 checkOp:
     enter $0, $0
     mov 8(%ebp), %edx 
     mov 1(%edx), %al 
-    // Check if this is a single char 
+    /* Check if this is a single char */
     cmp $0, %al 
     jne checkOpFalse 
     mov 0(%edx), %al 
-    // Check + operator 
+    /* Check + operator */
     cmp $43, %al 
     je checkOpTrue 
-    // Check - operator 
+    /* Check - operator */
     cmp $45, %al 
     je checkOpTrue 
-    // Check * operator
+    /* Check * operator */
     cmp $42, %al 
     je checkOpTrue 
-    // Check / operator 
+    /* Check / operator */
     cmp $47, %al 
     je checkOpTrue 
     jmp checkOpFalse 
@@ -96,30 +100,37 @@ checkOpEnd:
 
 main:
     enter $0, $0
+    /* get argc */
     mov 8(%ebp), %eax 
     cmp $4, %eax 
     jne output_usage 
+    /* get argv */
     mov 12(%ebp), %edi
     push 4(%edi)  
+    /* check the first number */
     call checkNumber 
     add $4, %esp 
     cmp $0, %eax 
     je output_usage 
     push 12(%edi) 
+    /* check the second number */
     call checkNumber 
     add $4, %esp 
     cmp $0, %eax 
     je output_usage 
     push 8(%edi)
+    /* check operator */
     call checkOp 
     add $4, %esp 
     cmp $0, %eax 
     je output_usage 
     push 4(%edi) 
+    /* convert the first number */
     call atoi 
     add $4, %esp 
     mov %eax, %esi 
     push 12(%edi) 
+    /* convert the second number */
     call atoi 
     add $4, %esp 
     mov $0, %ecx 
@@ -144,7 +155,7 @@ main:
     call printf 
     add $8, %esp 
     push %esi 
-    push $output_int 
+    push $output_number 
     call printf 
     add $8, %esp 
     mov $0, %eax 

@@ -1,11 +1,17 @@
-    .global main
+.global main
+.data
+    output_fmt:  .string "fib(%ld) = %ld\n"
+    usage_string: .string "Usage: ./fib N, where N >= 0\n"
+.text
 
-    .text
+/* fibonacci function */
 fib:
     enter $0, $0
     mov 8(%ebp), %eax
+    /* if (num == 0) */
     cmp $0, %eax 
     je fibret 
+    /* if (num == 1) */
     cmp $1, %eax 
     je fibret 
     push %ebx
@@ -13,11 +19,13 @@ fib:
     mov %eax, %ebx 
     dec %ebx 
     push %ebx 
+    /* calculate fib(num - 1) */
     call fib 
     mov %eax, %ecx 
     add $4, %esp 
     dec %ebx 
     push %ebx 
+    /* calculate fib(num - 2) */
     call fib 
     add $4, %esp 
     add %ecx, %eax 
@@ -28,18 +36,6 @@ fibret:
     ret
 main:
     enter $0, $0
-/*
-    mov 12(%ebp), %ecx
-    mov 4(%ecx), %eax
-    push %eax
-    call atoi
-    add $4, %esp
-
-    push %eax
-    push $output_fmt
-    call printf
-    add $8, %esp
-*/
     mov 8(%ebp), %edx
     cmp $2, %edx
     jne print_usage
@@ -69,7 +65,3 @@ print_usage:
 end:
     leave
     ret
-
-    .data
-output_fmt:  .string "fib(%ld) = %ld\n"
-usage_string: .string "Usage: ./fib N, where N >= 0\n"
