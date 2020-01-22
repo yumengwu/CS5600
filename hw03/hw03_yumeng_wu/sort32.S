@@ -72,11 +72,11 @@ sort_copy_left_array_end:
 sort_copy_right_array_loop:
     cmp 12(%ebp), %ecx
     je sort_copy_right_array_end
-    sub %ebx, %ecx
     push %ebx
     mov 8(%ebp), %ebx
     mov (%ebx, %ecx, 4), %eax
     pop %ebx
+    sub %ebx, %ecx
     mov %eax, (%esi, %ecx, 4)
     inc %ecx
     add %ebx, %ecx
@@ -129,7 +129,7 @@ test_copy_left_back_end:
 sort_ret:
     pop %ebx
     pop %esi
-    pop $edi
+    pop %edi
     leave
     ret
 
