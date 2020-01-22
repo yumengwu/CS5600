@@ -94,41 +94,67 @@ sort_copy_right_array_end:
     push %esi
     call sort
     add $8, %esp
-///////////////////////////////////////////////////
-    /* test copy back right subarray*/
+    /* copy back both left and right */
     mov %ebx, %ecx
-test_copy_right_back_loop:
-    cmp 12(%ebp), %ecx
-    je test_copy_right_back_end
-    sub %ebx, %ecx
-    mov 0(%esi), %eax
+    mov 12(%ebp), %edx
+    sub %ebx, %edx
     push %ebx
     mov 8(%ebp), %ebx
+sort_copy_back_both_loop:
+    cmp $0, %ecx
+    je sort_copy_back_both_end
+    cmp $0, %edx
+    je sort_copy_back_both_end
+    mov 0(%edi), %eax
+    cmp 0(%esi), %eax
+    jle sort_copy_back_both_left
+    jmp sort_copy_back_both_right
+sort_copy_back_both_left:
+    mov 0(%edi), %eax
     mov %eax, 0(%ebx)
     add $4, %ebx
+    add $4, %edi
+    dec %ecx
+    jmp sort_copy_back_both_loop
+sort_copy_back_both_right:
+    mov 0(%esi), %eax
+    mov %eax, 0(%ebx)
+    add $4, %ebx
+    add $4, %esi
+    dec %edx
+    jmp sort_copy_back_both_loop
+sort_copy_back_both_end:
     mov %ebx, 8(%ebp)
     pop %ebx
-    add $4, %esi
-    inc %ecx
-    add %ebx, %ecx
-    jmp test_copy_right_back_loop
-test_copy_right_back_end:
-    mov $0, %ecx
-test_copy_left_back_loop:
-    cmp %ebx, %ecx
-    je test_copy_left_back_end
+    /* copy other numbers back */
+    cmp $0, %ecx
+    jg sort_copy_back_left_loop
+    cmp $0, %edx
+    jg sort_copy_back_right_loop
+    jmp sort_copy_back_finish
+sort_copy_back_left_loop:
+    cmp $0, %ecx
+    je sort_copy_back_finish
     mov 0(%edi), %eax
-    push %ecx
-    mov 8(%ebp), %ecx
-    mov %eax, 0(%ecx)
-    add $4, %ecx
-    mov %ecx, 8(%ebp)
-    pop %ecx
+    mov 8(%ebp), %esi
+    mov %eax, 0(%esi)
     add $4, %edi
-    inc %ecx
-    jmp test_copy_left_back_loop
-test_copy_left_back_end:
-///////////////////////////////////////
+    add $4, %esi
+    mov %esi, 8(%ebp)
+    dec %ecx
+    jmp sort_copy_back_left_loop
+sort_copy_back_right_loop:
+    cmp $0, %edx
+    je sort_copy_back_finish
+    mov 0(%esi), %eax
+    mov 8(%ebp), %edi
+    mov %eax, 0(%edi)
+    add $4, %esi
+    add $4, %edi
+    mov %edi, 8(%ebp)
+    dec %edx
+    jmp sort_copy_back_right_loop
+sort_copy_back_finish:
     /* free left subarray */
     mov %ebx, %edx
     shl $2, %edx
