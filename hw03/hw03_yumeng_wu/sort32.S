@@ -28,13 +28,108 @@ has_error_ret:
 /*
  * merge sort:
  * void sort(int * array, long length);
+ * left will be zero, right will be length
  */
 sort:
     enter $0, $0
-    push 0(%ebp)
-    push $test_int
-    call printf
-    add $8, %esp
+    push %edi
+    push %esi
+    push %ebx
+    /* if (right <= left + 1) return; */
+    mov 12(%ebp), %eax
+    cmp $1, %eax
+    jle sort_ret
+    /* calculate mid = (right - left) / 2 */
+    shr $1, %eax
+    /* mid will be in ebx */
+    mov %eax, %ebx
+    /* allocate left subarray, left subarray will be stored in edi */
+    mov %ebx, %edx
+    shl $2, %edx
+    sub %edx, %esp
+    lea 0(%esp), %edi
+    /* copy left subarray */
+    mov $0, %ecx
+sort_copy_left_array_loop:
+    cmp %ebx, %ecx
+    je sort_copy_left_array_end
+    push %ebx
+    mov 8(%ebp), %ebx
+    mov (%ebx, %ecx, 4), %eax
+    pop %ebx
+    mov %eax, (%edi, %ecx, 4)
+    inc %ecx
+    jmp sort_copy_left_array_loop
+sort_copy_left_array_end:
+    /* allocate right subarray, right subarray will be stored in esi */
+    mov 12(%ebp), %edx
+    sub %ebx, %edx
+    shl $2, %edx
+    sub %edx, %esp
+    lea 0(%esp), %esi
+    /* copy right subarray */
+    mov %ebx, %ecx
+sort_copy_right_array_loop:
+    cmp 12(%ebp), %ecx
+    je sort_copy_right_array_end
+    sub %ebx, %ecx
+    push %ebx
+    mov 8(%ebp), %ebx
+    mov (%ebx, %ecx, 4), %eax
+    pop %ebx
+    mov %eax, (%esi, %ecx, 4)
+    inc %ecx
+    add %ebx, %ecx
+    jmp sort_copy_right_array_loop
+sort_copy_right_array_end:
+///////////////////////////////////////////////////
+    /* test copy back right subarray*/
+    mov %ebx, %ecx
+test_copy_right_back_loop:
+    cmp 12(%ebp), %ecx
+    je test_copy_right_back_end
+    sub %ebx, %ecx
+    mov 0(%esi), %eax
+    push %ebx
+    mov 8(%ebp), %ebx
+    mov %eax, 0(%ebx)
+    add $4, %ebx
+    mov %ebx, 8(%ebp)
+    pop %ebx
+    add $4, %esi
+    inc %ecx
+    add %ebx, %ecx
+    jmp test_copy_right_back_loop
+test_copy_right_back_end:
+    mov $0, %ecx
+test_copy_left_back_loop:
+    cmp %ebx, %ecx
+    je test_copy_left_back_end
+    mov 0(%edi), %eax
+    push %ecx
+    mov 8(%ebp), %ecx
+    mov %eax, 0(%ecx)
+    add $4, %ecx
+    mov %ecx, 8(%ebp)
+    pop %ecx
+    add $4, %edi
+    inc %ecx
+    jmp test_copy_left_back_loop
+test_copy_left_back_end:
+///////////////////////////////////////
+    /* free left subarray */
+    mov %ebx, %edx
+    shl $2, %edx
+    add %edx, %esp
+    /* free right subarray */
+    mov 12(%ebp), %edx
+    sub %ebx, %edx
+    shl $2, %edx
+    add %edx, %esp
+sort_ret:
+    pop %ebx
+    pop %esi
+    pop $edi
     leave
     ret
 
@@ -159,4 +254,3 @@ output_usage:
 main_end:
     leave
     ret
-
