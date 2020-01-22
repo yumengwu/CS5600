@@ -34,13 +34,33 @@ main:
     mov %rax, fd
     mov %rax, %rdi
     call has_error
+    /* use sys_lseek to get file size */
+    mov $fd, %rax
+    mov 0(%rax), %rdi
+    mov $0, %rsi
+    mov $2, %rdx
+    mov $8, %rax
+    syscall
+    mov %rax, file_size
+    mov %rax, %rdi
+    call has_error
+    /* use sys_lseek to reset offset */
+    mov $fd, %rax
+    mov 0(%rax), %rdi
+    mov $0, %rsi
+    mov $0, %rdx
+    mov $8, %rax
+    syscall
+    call has_error
+    /* allocate memory */
+    
     /* close argv[1] */
     mov $fd, %rax
     mov 0(%rax), %rdi
     mov $3, %rax
     syscall
     mov %rax, %rdi
-    call has_error 
+    call has_error
     mov $0, %rax
     jmp main_end
 output_usage:
