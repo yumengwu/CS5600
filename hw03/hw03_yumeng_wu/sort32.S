@@ -82,6 +82,18 @@ sort_copy_right_array_loop:
     add %ebx, %ecx
     jmp sort_copy_right_array_loop
 sort_copy_right_array_end:
+    /* recursively solve left part */
+    push %ebx
+    push %edi
+    call sort
+    add $8, %esp
+    /* recursively solve right part */
+    mov 12(%ebp), %eax
+    sub %ebx, %eax
+    push %eax
+    push %esi
+    call sort
+    add $8, %esp
 ///////////////////////////////////////////////////
     /* test copy back right subarray*/
     mov %ebx, %ecx
