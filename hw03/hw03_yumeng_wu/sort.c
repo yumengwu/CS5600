@@ -72,19 +72,21 @@ int main(int argc, char* argv[])
     int array[len];
     res = lseek(fd, 0, SEEK_SET);
     has_error(res);
-    for (int i = 0; i < len; ++i)
-    {
-        res = read(fd, &array[i], 4);
-        has_error(res);
-    }
+    // for (int i = 0; i < len; ++i)
+    // {
+    //     res = read(fd, &array[i], 4);
+    //     has_error(res);
+    // }
+    res = read(fd, array, 4 * len);
     close(fd);
     sort(array, len);
     fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC);
-    for (int i = 0; i < len; ++i)
-    {
-        res = write(fd, &array[i], 4);
-        has_error((res == 4) - 1);
-    }
+    // for (int i = 0; i < len; ++i)
+    // {
+    //     res = write(fd, &array[i], 4);
+    //     has_error((res == 4) - 1);
+    // }
+    res = write(fd, array, 4 * len);
     close(fd);
     return 0;
 }
