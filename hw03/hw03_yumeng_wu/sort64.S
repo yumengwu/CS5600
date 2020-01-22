@@ -1,14 +1,53 @@
-    .global main
-    .data
-usage_msg:  .string "Usage: ./sort input output"
+.global main
+.data
+    usage_msg: .string "Usage: ./sort input-file output-file\n"
+    error_msg: .string "Error"
+    fd: .int 0
+    file_size: .long 0
+.text
+/* check if sys call has error */
+has_error:
+    enter $0, $0
+    cmp $0, %rdi
+    jge has_error_ret
+    mov $error_msg, %rdi
+    call perror
+    mov $1, %rdi
+    mov $60, %rax
+    syscall
+has_error_ret:
+    leave
+    ret
 
-    .text
+/* main function */
 main:
     enter $0, $0
-
-    mov $usage_msg, %rdi
-    call puts  // FIXME: That's not a syscall
-
+    cmp $3, %rdi
+    jne output_usage
+    /* save argv */
+    mov %rsi, %r12
+    /* open argv[1] */
+    mov 8(%r12), %rdi
+    mov $0, %rsi
     mov $2, %rax
+    syscall
+    mov %rax, fd
+    mov %rax, %rdi
+    call has_error
+    /* close argv[1] */
+    mov $fd, %rax
+    mov 0(%rax), %rdi
+    mov $3, %rax
+    syscall
+    mov %rax, %rdi
+    call has_error 
+    mov $0, %rax
+    jmp main_end
+output_usage:
+    mov $usage_msg, %rdi
+    mov $0, %rax
+    call printf
+    mov $1, %rax
+main_end:
     leave
     ret

@@ -4,7 +4,6 @@
     error_msg: .string "Error"
     fd: .int 0
     file_size: .long 0
-    test_int: .string "%d\n"
 .text
 /* check if sys call has error */
 has_error:
