@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
     res = read(fd, array, 4 * len);
     close(fd);
     sort(array, len);
-    fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC);
+    fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, 0644);
     res = write(fd, array, 4 * len);
     close(fd);
     return 0;
