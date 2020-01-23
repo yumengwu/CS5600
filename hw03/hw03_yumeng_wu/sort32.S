@@ -38,7 +38,7 @@ sort:
     mov 12(%ebp), %eax
     cmp $1, %eax
     jle sort_ret
-    /* calculate mid = (right - left) / 2 */
+    /* calculate mid = (right + left) / 2 */
     shr $1, %eax
     /* mid will be in ebx */
     mov %eax, %ebx
