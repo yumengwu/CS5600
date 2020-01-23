@@ -4,6 +4,7 @@
     error_msg: .string "Error"
     fd: .int 0
     file_size: .long 0
+    test_int: .string "%d\n"
 .text
 /* check if sys call has error */
 has_error:
@@ -53,7 +54,20 @@ main:
     syscall
     call has_error
     /* allocate memory */
-    
+    mov $file_size, %rdx
+    mov %rdx, %rax
+    and $7, %rax
+    cmp $0, %rax
+    je alloc_after_align
+    add $4, %rdx
+alloc_after_align:
+    sub %rdx, %rsp
+    lea 0(%rsp), %r13
+    /* use sys_read to read file */
+    mov $fd, %rax
+    mov 0(%rax), %rsi
+    mov $test_int, %rdi
+    call printf
     /* close argv[1] */
     mov $fd, %rax
     mov 0(%rax), %rdi
@@ -61,6 +75,15 @@ main:
     syscall
     mov %rax, %rdi
     call has_error
+    /* free memory */
+    mov $file_size, %rdx
+    mov %rdx, %rax
+    and $7, %rax
+    cmp $0, %rax
+    je free_after_align
+    add $4, %rdx
+free_after_align:
+    add %rdx, %rsp
     mov $0, %rax
     jmp main_end
 output_usage:
