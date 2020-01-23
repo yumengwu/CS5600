@@ -5,6 +5,7 @@
     fd: .int 0
     file_size: .long 0
     test_int: .string "%d\n"
+    test_long: .string "%ld\n"
 .text
 /* check if sys call has error */
 has_error:
@@ -33,9 +34,22 @@ main:
     mov $2, %rax
     syscall
     mov %rax, fd
+    mov %rax, %rdi
+    call has_error
+    /* use sys_lseek to get file size */
     mov $fd, %rax
+    mov $0, %rdi
+    mov 0(%rax), %edi
+    mov $0, %rsi
+    mov $2, %rdx
+    mov $8, %rax
+    syscall
+    mov %rax, file_size
+    mov %rax, %rdi
+    call has_error
+    mov $file_size, %rax
     mov 0(%rax), %rsi
-    mov $test_int, %rdi
+    mov $test_long, %rdi
     mov $0, %rax
     call printf
     /* use sys_close to close argv[1] */
