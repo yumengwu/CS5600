@@ -230,7 +230,8 @@ main:
     call sort
     /* use sys_open to open output file */
     mov 16(%r12), %rdi
-    mov $0x601, %rsi
+    mov $601, %rsi
+    mov $0644, %rdx
     mov $2, %rax
     syscall
     mov %eax, fd
