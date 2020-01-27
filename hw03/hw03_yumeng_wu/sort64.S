@@ -4,16 +4,17 @@
     error_msg: .string "Error"
     fd: .int 0
     file_size: .long 0
-    test_int: .string "%d\n"
-    test_long: .string "%ld\n"
 .text
 /* check if sys call has error */
 has_error:
     enter $0, $0
     cmp $0, %rdi
     jge has_error_ret
+    /* if return value of sys call < 0, this function will
+       will print error message and call sys_exit */
     mov $error_msg, %rdi
     call perror
+    /* use sys_exit to exit with status 1 */
     mov $1, %rdi
     mov $60, %rax
     syscall

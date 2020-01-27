@@ -1,4 +1,3 @@
-
 #include <unistd.h>
 #include <stdio.h> // for perror
 #include <stdlib.h>
@@ -6,6 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+/* check if sys call has error */
 void has_error(int n)
 {
     if (n < 0)
@@ -21,9 +21,12 @@ void merge_sort(int * array, long left, long right)
     {
         return;
     }
+    /* calculate subarray size */
     long mid = left + (right - left) / 2;
     int lLen = mid - left, rLen = right - mid;
+    /* allocate space for subarrays */
     int lArr[lLen], rArr[rLen];
+    /* copy subarray */
     for (int i = 0; i < lLen; ++i)
     {
         lArr[i] = array[left + i];
@@ -32,9 +35,11 @@ void merge_sort(int * array, long left, long right)
     {
         rArr[i] = array[mid + i];
     }
+    /* recursively sort subarray */
     merge_sort(lArr, 0, lLen);
     merge_sort(rArr, 0, rLen);
     int i = 0, j = 0, k = left;
+    /* merge subarray */
     while (i < lLen || j < rLen)
     {
         if (j == rLen)
@@ -48,6 +53,7 @@ void merge_sort(int * array, long left, long right)
     }
 }
 
+/* merge sort entrance */
 void sort(int * array, long nn)
 {
     merge_sort(array, 0, nn);

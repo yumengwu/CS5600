@@ -15,6 +15,7 @@ has_error:
        will print error message and call sys_exit */
     push $error_msg
     call perror
+    /* use sys_exit to exit with status 1 */
     add $4, %esp
     mov $1, %ebx
     mov $0x1, %eax
