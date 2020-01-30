@@ -90,6 +90,17 @@ sys_write(void)
   return filewrite(f, p, n);
 }
 
+// add sys_getiostats
+int
+sys_getiostats() {
+  struct file * f;
+  struct iostats * st;
+  if (argfd(0, 0, &f) < 0 || argptr(1, (void*)&st, sizeof(*st)) < 0) {
+    return -1;
+  }
+  return filegetiostats(f, st);
+}
+
 int
 sys_close(void)
 {

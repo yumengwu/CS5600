@@ -9,3 +9,10 @@ struct stat {
   short nlink; // Number of links to file
   uint size;   // Size of file in bytes
 };
+
+// Add iostats
+struct iostats
+{
+  uint read_bytes;
+  uint write_bytes;
+};
