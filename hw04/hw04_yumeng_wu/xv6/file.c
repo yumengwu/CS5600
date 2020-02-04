@@ -68,6 +68,8 @@ fileclose(struct file *f)
   }
   ff = *f;
   f->ref = 0;
+  f->read_bytes = 0;
+  f->write_bytes = 0;
   f->type = FD_NONE;
   release(&ftable.lock);
 
@@ -163,7 +165,7 @@ filewrite(struct file *f, char *addr, int n)
 }
 
 // fill iostats struct
-int filegetiostats(struct file * f, struct iostats * st)
+int filegetiostats(int fd, struct file * f, struct iostats * st)
 {
   ilock(f->ip);
   st->read_bytes = f->read_bytes;

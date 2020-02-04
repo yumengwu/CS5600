@@ -1,3 +1,5 @@
+#ifndef __SLEEPLOCK__H
+#define __SLEEPLOCK__H
 // Long-term locks for processes
 struct sleeplock {
   uint locked;       // Is the lock held?
@@ -8,3 +10,4 @@ struct sleeplock {
   int pid;           // Process holding lock
 };
 
+#endif

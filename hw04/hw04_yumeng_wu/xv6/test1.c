@@ -13,12 +13,12 @@ main(int _ac, char *_av[])
 
   fd1 = open("test11.txt", O_CREATE | O_WRONLY);
   fd2 = open("test12.txt", O_CREATE | O_WRONLY);
-
-  for (int ii = 0; ii < 10; ++ii) {
+int ii;
+  for (ii = 0; ii < 10; ++ii) {
     write(fd1, "1234", 4);
   }
 
-  for (int ii = 0; ii < 11; ++ii) {
+  for (ii = 0; ii < 11; ++ii) {
     write(fd2, "abc", 3);
   }
 
@@ -28,7 +28,7 @@ main(int _ac, char *_av[])
   rv = getiostats(fd2, &st);
   printf(1, "fd2 stats(%d) (r: %d, w: %d) -> %d\n", fd2, st.read_bytes, st.write_bytes, rv);
 
-  for (int ii = 0; ii < 8; ++ii) {
+  for (ii = 0; ii < 8; ++ii) {
     write(fd2, "ab", 2);
   }
 

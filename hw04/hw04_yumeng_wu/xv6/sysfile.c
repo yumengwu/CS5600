@@ -95,10 +95,11 @@ int
 sys_getiostats() {
   struct file * f;
   struct iostats * st;
-  if (argfd(0, 0, &f) < 0 || argptr(1, (void*)&st, sizeof(*st)) < 0) {
+  int fd;
+  if (argfd(0, &fd, &f) < 0 || argptr(1, (void*)&st, sizeof(*st)) < 0) {
     return -1;
   }
-  return filegetiostats(f, st);
+  return filegetiostats(fd, f, st);
 }
 
 int
@@ -338,6 +339,8 @@ sys_open(void)
   f->type = FD_INODE;
   f->ip = ip;
   f->off = 0;
+  f->read_bytes = 0;
+  f->write_bytes = 0;
   f->readable = !(omode & O_WRONLY);
   f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
   return fd;

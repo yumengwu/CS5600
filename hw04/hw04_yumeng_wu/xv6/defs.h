@@ -34,7 +34,7 @@ void            fileinit(void);
 int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
-int             filegetiostats(struct file *, struct iostats *);
+int             filegetiostats(int, struct file *, struct iostats *);
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);

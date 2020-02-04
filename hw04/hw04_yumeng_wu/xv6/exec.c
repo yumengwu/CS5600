@@ -6,6 +6,10 @@
 #include "defs.h"
 #include "x86.h"
 #include "elf.h"
+#include "spinlock.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
 
 int
 exec(char *path, char **argv)
@@ -99,6 +103,13 @@ exec(char *path, char **argv)
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
+  int ii = 0;
+  for (ii = 0; ii < NOFILE; ++ii) {
+    if (curproc->ofile[ii]) {
+      curproc->ofile[ii]->read_bytes = 0;
+      curproc->ofile[ii]->write_bytes = 0;
+    }
+  }
   switchuvm(curproc);
   freevm(oldpgdir);
   return 0;
