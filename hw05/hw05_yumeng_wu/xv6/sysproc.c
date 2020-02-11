@@ -28,14 +28,17 @@ sys_wait(void)
 
 int sys_exit1(void)
 {
-  cprintf("exit1\n");
+  int status;
+  argint(0, &status);
+  exit1(status);
   return 0;
 }
 
 int sys_wait1(void)
 {
-  cprintf("wait1\n");
-  return 0;
+  int * status;
+  argptr(0, (void*)&status, sizeof(status));
+  return wait1(status);
 }
 
 int

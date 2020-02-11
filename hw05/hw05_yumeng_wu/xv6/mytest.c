@@ -5,9 +5,11 @@
 int
 main(int _ac, char* _av[])
 {
-  int i = 0;
+  int i = 123;
   int * ii = &i;
-  exit1(i);
   wait1(ii);
+  printf(1, "before exit1\n");
+  exit1(i);
+  printf(1, "after exit1\n");
   exit();
 }

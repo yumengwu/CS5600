@@ -1,6 +1,7 @@
 // Shell.
 
 #include "types.h"
+#include "stat.h"
 #include "user.h"
 #include "fcntl.h"
 
@@ -141,8 +142,48 @@ getcmd(char *buf, int nbuf)
   return 0;
 }
 
+void runScript(char * scriptName)
+{
+  int fd = open(scriptName, O_RDONLY), res;
+  if (fd < 0)
+  {
+    exit1(1);
+  }
+  struct stat st;
+  stat(scriptName, &st);
+  char buf[st.size + 1];
+  memset(buf, 0, st.size);
+  res = read(fd, buf, st.size);
+  if (res != st.size)
+  {
+    exit1(1);
+  }
+  close(fd);
+  uint left = 0;
+  while (left < st.size)
+  {
+    int right = left;
+    while (right < st.size && buf[right] != '\n')
+    {
+      ++right;
+    }
+    char curcmd[right - left + 1];
+    memset(curcmd, 0, right - left + 1);
+    int i;
+    for (i = 0; i < right - left; ++i)
+    {
+      curcmd[i] = buf[left + i];
+    }
+    printf(1, "%s\n", curcmd);
+    if(fork1() == 0)
+      runcmd(parsecmd(curcmd));
+    wait();
+    left = right + 1;
+  }
+}
+
 int
-main(void)
+main(int argc, char ** argv)
 {
   static char buf[100];
   int fd;
@@ -153,6 +194,11 @@ main(void)
       close(fd);
       break;
     }
+  }
+
+  if (argc == 2) {
+    runScript(argv[1]);
+    exit();
   }
 
   // Read and run input commands.

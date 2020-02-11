@@ -183,9 +183,9 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_mytest\
-#	_status\
-#	_true\
-#	_false\
+	_status\
+	_true\
+	_false\
 #	_retlen\
 #	_done\
 
