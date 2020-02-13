@@ -11,6 +11,10 @@
 #include "fs.h"
 #include "file.h"
 
+/*  I referenced problem description on page 5 and 6 of this pdf: 
+    https://www.cs.bgu.ac.il/~os172/wiki.files/Assignment1.pdf
+    to add return from main.
+*/
 void new_entry(int (*entry)(int, char**), int argc, char **argv) { 
   (*entry)(argc,argv);
  __asm__ ("push %eax \n\t"
