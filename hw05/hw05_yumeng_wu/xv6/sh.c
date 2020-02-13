@@ -43,6 +43,7 @@ struct listcmd {
   int type;
   struct cmd *left;
   struct cmd *right;
+  char op;
 };
 
 struct backcmd {
@@ -74,10 +75,16 @@ runcmd(struct cmd *cmd)
 
   case EXEC:
     ecmd = (struct execcmd*)cmd;
+    int se;
     if(ecmd->argv[0] == 0)
       exit();
-    exec(ecmd->argv[0], ecmd->argv);
-    printf(2, "exec %s failed\n", ecmd->argv[0]);
+    if (fork1() == 0) {
+      exec(ecmd->argv[0], ecmd->argv);
+      printf(2, "exec %s failed\n", ecmd->argv[0]);
+      exit1(1);
+    }
+    wait1(&se);
+    exit1(se);
     break;
 
   case REDIR:
@@ -85,17 +92,36 @@ runcmd(struct cmd *cmd)
     close(rcmd->fd);
     if(open(rcmd->file, rcmd->mode) < 0){
       printf(2, "open %s failed\n", rcmd->file);
-      exit();
+      exit1(1);
     }
     runcmd(rcmd->cmd);
     break;
 
   case LIST:
     lcmd = (struct listcmd*)cmd;
+    int status;
     if(fork1() == 0)
       runcmd(lcmd->left);
-    wait();
-    runcmd(lcmd->right);
+    wait1(&status);
+    if (lcmd->op == 'n') {
+      runcmd(lcmd->right);
+    }
+    else if (lcmd->op == 'a') {
+      if (status == 0) {
+        runcmd(lcmd->right);
+      }
+      else {
+        exit1(1);
+      }
+    }
+    else if (lcmd->op == 'o') {
+      if (status == 1) {\
+        runcmd(lcmd->right);
+      }
+      else {
+        exit1(0);
+      }
+    }
     break;
 
   case PIPE:
@@ -118,8 +144,10 @@ runcmd(struct cmd *cmd)
     }
     close(p[0]);
     close(p[1]);
-    wait();
-    wait();
+    int ss1, ss2;
+    wait1(&ss1);
+    wait1(&ss2);
+    exit1(ss2);
     break;
 
   case BACK:
@@ -142,7 +170,7 @@ getcmd(char *buf, int nbuf)
   return 0;
 }
 
-void runScript(char * scriptName)
+int runScript(char * scriptName)
 {
   int fd = open(scriptName, O_RDONLY), res;
   if (fd < 0)
@@ -160,6 +188,7 @@ void runScript(char * scriptName)
   }
   close(fd);
   uint left = 0;
+  int status;
   while (left < st.size)
   {
     int right = left;
@@ -174,12 +203,12 @@ void runScript(char * scriptName)
     {
       curcmd[i] = buf[left + i];
     }
-    printf(1, "%s\n", curcmd);
     if(fork1() == 0)
       runcmd(parsecmd(curcmd));
-    wait();
+    wait1(&status);
     left = right + 1;
   }
+  return status;
 }
 
 int
@@ -197,8 +226,8 @@ main(int argc, char ** argv)
   }
 
   if (argc == 2) {
-    runScript(argv[1]);
-    exit();
+    int status = runScript(argv[1]);
+    exit1(status);
   }
 
   // Read and run input commands.
@@ -279,7 +308,7 @@ pipecmd(struct cmd *left, struct cmd *right)
 }
 
 struct cmd*
-listcmd(struct cmd *left, struct cmd *right)
+listcmd(struct cmd *left, struct cmd *right, char op)
 {
   struct listcmd *cmd;
 
@@ -288,6 +317,7 @@ listcmd(struct cmd *left, struct cmd *right)
   cmd->type = LIST;
   cmd->left = left;
   cmd->right = right;
+  cmd->op = op;
   return (struct cmd*)cmd;
 }
 
@@ -323,13 +353,25 @@ gettoken(char **ps, char *es, char **q, char **eq)
   switch(*s){
   case 0:
     break;
-  case '|':
   case '(':
   case ')':
   case ';':
-  case '&':
   case '<':
     s++;
+    break;
+  case '&':
+    s++;
+    if (*s == '&'){
+      ret = 2 * '&';
+      s++;
+    }
+    break;
+  case '|':
+    s++;
+    if (*s == '|'){
+      ret = 2 * '|';
+      s++;
+    }
     break;
   case '>':
     s++;
@@ -362,7 +404,21 @@ peek(char **ps, char *es, char *toks)
   while(s < es && strchr(whitespace, *s))
     s++;
   *ps = s;
-  return *s && strchr(toks, *s);
+  if (*toks == '&' && *(toks + 1) == '&') {
+    return *s && strchr(toks, *s) && strchr(toks, *(s + 1));
+  }
+  else if (*toks == '&' && *(toks + 1) == 0) {
+    return *s && strchr(toks, *s) && !strchr(toks, *(s + 1));
+  }
+  if (*toks == '|' && *(toks + 1) == '|') {
+    return *s && strchr(toks, *s) && strchr(toks, *(s + 1));
+  }
+  else if (*toks == '|' && *(toks + 1) == 0) {
+    return *s && strchr(toks, *s) && !strchr(toks, *(s + 1));
+  }
+  else {
+    return *s && strchr(toks, *s);
+  }
 }
 
 struct cmd *parseline(char**, char*);
@@ -399,7 +455,15 @@ parseline(char **ps, char *es)
   }
   if(peek(ps, es, ";")){
     gettoken(ps, es, 0, 0);
-    cmd = listcmd(cmd, parseline(ps, es));
+    cmd = listcmd(cmd, parseline(ps, es), 'n');
+  }
+  else if (peek(ps, es, "&&")) {
+    gettoken(ps, es, 0, 0);
+    cmd = listcmd(cmd, parseline(ps, es), 'a');
+  }
+  else if (peek(ps, es, "||")) {
+    gettoken(ps, es, 0, 0);
+    cmd = listcmd(cmd, parseline(ps, es), 'o');
   }
   return cmd;
 }

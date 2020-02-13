@@ -26,7 +26,7 @@ int sleep(int);
 int uptime(void);
 int halt(void);
 int getiostats(int, struct iostats *);
-int exit1(int);
+int exit1(int) __attribute__((noreturn));;
 int wait1(int *);
 
 // ulib.c

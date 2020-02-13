@@ -11,12 +11,21 @@
 #include "fs.h"
 #include "file.h"
 
+void new_entry(int (*entry)(int, char**), int argc, char **argv) { 
+  (*entry)(argc,argv);
+ __asm__ ("push %eax \n\t"
+          "push $0 \n\t"
+          "movl $24, %eax \n\t"
+          "int $64");
+}
+
 int
 exec(char *path, char **argv)
 {
   char *s, *last;
   int i, off;
   uint argc, sz, sp, ustack[3+MAXARG+1];
+  uint pointer_new_entry;
   struct elfhdr elf;
   struct inode *ip;
   struct proghdr ph;
@@ -64,31 +73,39 @@ exec(char *path, char **argv)
   end_op();
   ip = 0;
 
+  pointer_new_entry = sz;  
+
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
   sz = PGROUNDUP(sz);
-  if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
+  if((sz = allocuvm(pgdir, sz, sz + 3*PGSIZE)) == 0)
     goto bad;
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
+  
+  if (copyout(pgdir, pointer_new_entry, new_entry, (uint)exec - (uint)new_entry) < 0)
+    goto bad;
+
   sp = sz;
 
   // Push argument strings, prepare rest of stack in ustack.
+
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
       goto bad;
     sp = (sp - (strlen(argv[argc]) + 1)) & ~3;
     if(copyout(pgdir, sp, argv[argc], strlen(argv[argc]) + 1) < 0)
       goto bad;
-    ustack[3+argc] = sp;
+    ustack[4+argc] = sp;
   }
-  ustack[3+argc] = 0;
+  ustack[4+argc] = 0;
 
   ustack[0] = 0xffffffff;  // fake return PC
-  ustack[1] = argc;
-  ustack[2] = sp - (argc+1)*4;  // argv pointer
+  ustack[1] = elf.entry;
+  ustack[2] = argc;
+  ustack[3] = sp - (argc+1)*4; //argv of original main
 
-  sp -= (3+argc+1) * 4;
-  if(copyout(pgdir, sp, ustack, (3+argc+1)*4) < 0)
+  sp -= (4+argc+1) * 4;
+  if(copyout(pgdir, sp, ustack, (4+argc+1)*4) < 0)
     goto bad;
 
   // Save program name for debugging.
@@ -101,7 +118,7 @@ exec(char *path, char **argv)
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
   curproc->sz = sz;
-  curproc->tf->eip = elf.entry;  // main
+  curproc->tf->eip = pointer_new_entry;  // main
   curproc->tf->esp = sp;
   int ii = 0;
   for (ii = 0; ii < NOFILE; ++ii) {
