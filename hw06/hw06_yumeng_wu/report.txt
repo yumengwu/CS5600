@@ -1,10 +1,15 @@
-1. The operating system, processor model, number of processor cores, and amount of RAM for your local machine.
+1. The operating system, processor model, number of processor cores,
+and amount of RAM for your local machine.
+
 Operating system: Debian 10
 Processor model: Intel(R) Core(TM) i5-7360U CPU @ 2.30GHz
 Number of processor cores: 2
 RAM: 2499MB
 
-2. The operating system, processor model, number of processor cores, and amount of RAM for the CCIS server.
+2. The operating system, processor model, number of processor cores,
+and amount of RAM for the CCIS server.
+
+The CCIS server
 Operating system: CentOS Linux 7
 Processor model: Intel(R) Xeon(R) Gold 5118 CPU @ 2.30GHz
 Number of processor cores: 48
@@ -12,41 +17,74 @@ RAM: 191694MB
 
 3. A table of measured time and parallel speedup for each test
 psort:
-test                                    measured time           parallel speedup
-Local machine, 1 process                49.782s                 1
-Local machine, 4 processes              29.086s                 1.7
-Local machine, 8 processes              29.972s                 1.66
-The CCIS server, 1 process              58.808s                 1
-The CCIS server, 4 processes            32.207s                 1.826
-The CCIS server, 8 processes            14.444s                 4.07
-The CCIS server, 16 processes           9.028s                  6.514
-The CCIS server, 32 processes           5.019s                  11.717
+test                            measured time   parallel speedup
+Local machine, 1 process        49.782s         1
+Local machine, 4 processes      29.086s         1.7
+Local machine, 8 processes      29.972s         1.66
+The CCIS server, 1 process      58.808s         1
+The CCIS server, 4 processes    32.207s         1.826
+The CCIS server, 8 processes    14.444s         4.07
+The CCIS server, 16 processes   9.028s          6.514
+The CCIS server, 32 processes   5.019s          11.717
 
 tsort:
-test                                    measured time           parallel speedup
-The CCIS server, 1 process              58.790s                 1
-The CCIS server, 4 processes            25.733s                 2.28
-The CCIS server, 8 processes            16.113s                 3.65
-The CCIS server, 16 processes           10.338s                 5.69
-The CCIS server, 32 processes           8.040s                  7.31
+test                            measured time   parallel speedup
+The CCIS server, 1 process      58.790s         1
+The CCIS server, 4 processes    25.733s         2.28
+The CCIS server, 8 processes    16.113s         3.65
+The CCIS server, 16 processes   10.338s         5.69
+The CCIS server, 32 processes   8.040s          7.31
 
-4. Two or three paragraphs discussing what results you got and why you got them.
-We can see for both psort and tsort, multi-processes' performances are better than single
-process. Since my local machine runs on VirtualBox and has only 2 processor cores, multi-
-processes has a better performances but speedup is less than 2. For CCIS server, since its
-processor cores are enough for this test, psort's performance is better than tsort. The
-reason may be although create process is more time-consuming, I use shared memory here, so
-memory dosn't have significant influence. And for barrier, using a sem in shared memory may
-also faster than using pthread_cond_t.
+4. Two or three paragraphs discussing what results you got and why
+you got them.
 
-Optimal parallel speedup is N but neither psort nor tsort achieve. The reason may be random
-samples are not good enough, or the way we use barrier: barrier_wait may slow down the speed.
+We can see for both psort and tsort, multi-processes' performances
+are better than single process. Since my local machine runs on
+VirtualBox and has only 2processor cores, multi-processes has a
+better performances but speedup is less than 2. For CCIS server,
+since its processor cores are enough for this test, psort's
+performance is better than tsort. The reason may be although create
+process is more time-consuming, I use shared memory here, so memory
+dosn't have significant influence. And for barrier, using a sem in
+shared memory may also faster than using pthread_cond_t.
 
-5. Look up “Amdahl’s Law” and “Gustafson’s Law” on Wikipedia. Is sample sort a good parallel sorting algorithm?
-It depends on the choice of P. Because for quick sort, sort itself is O(nlogn), and before sort
-there is a O(n) to operate the data, and a O(n) to operate the data. We cannot parallel in both
-O(n) parts. So when n is very large, O(nlogn) is the part where we can parallel.
+Optimal parallel speedup is N but neither psort nor tsort achieve.
+The reason may be random samples are not good enough, or the way we
+use barrier: barrier_wait may slow down the speed.
+
+5. Look up “Amdahl’s Law” and “Gustafson’s Law” on Wikipedia. Is
+sample sort a good parallel sorting algorithm?
+
+It depends on the choice of P. Because for quick sort, sort itself
+is O(nlogn), and before sort there is a O(n) to operate the data,
+and a O(n) to operate the data. We cannot parallel in both O(n)
+parts. So when n is very large, O(nlogn) is the part where we can
+parallel.
 
 6. Which performs better, threads or processes? By how much? Why?
-According to the results above, processes perform better than threads, but difference is not
-significant. The reason may be barrier_wait may slow down the speed when using pthread_cond_t.
+
+According to the results above, processes perform better than
+threads, but difference is not significant. The reason may be
+barrier_wait may slow down the speed when using pthread_cond_t.
+
+7. Modify one of your programs to sample more than 3*(P-1) items
+(e.g. maybe 61*(P-1) instead) and then compare 1 vs. 8
+processes/threads.
+psort:
+test                            measured time   parallel speedup
+The CCIS server, 1 process      42.623s         1
+The CCIS server, 8 processes    7.705s          5.53
+The CCIS server, 16 processes   4.192s          10.168
+
+tsort:
+test                            measured time   parallel speedup
+The CCIS server, 1 process      42.787s         1
+The CCIS server, 8 processes    9.483s          4.512
+The CCIS server, 16 processes   5.818s          7.354
+
+This improve your parallel speedup because it may have a better
+choice of samples.
+
+Doing more sequential work is not always a good deal. Taking the
+samples as a example, if samples is large, it will take plenty of
+time to sort samples, so the final running will not decrease.

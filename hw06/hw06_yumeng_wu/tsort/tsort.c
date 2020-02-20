@@ -57,6 +57,7 @@ void qsort_f(float * data, int left, int right)
     }
 }
 
+// local quick sort
 void
 qsort_floats(floats* xs)
 {
@@ -68,7 +69,7 @@ floats*
 sample(int P)
 {
     // TODO: Randomly sample 3*(P-1) items from the input data.
-    int rss = 61 * (P - 1);
+    int rss = 3 * (P - 1);
     floats * result = make_floats(rss);
     for (int i = 0; i < rss; ++i)
     {
