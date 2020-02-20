@@ -56,7 +56,7 @@ floats*
 sample(float* data, long size, int P)
 {
     // TODO: Randomly sample 3*(P-1) items from the input data.
-    int rss = 3 * (P - 1);
+    int rss = 61 * (P - 1);
     floats * result = make_floats(rss);
     for (int i = 0; i < rss; ++i)
     {
@@ -70,7 +70,6 @@ sort_worker(int pnum, float* data, long size, int P, floats* samps, long* sizes,
 {
     floats* xs = make_floats(0);
 
-    // TODO: Copy the data for our partition into a locally allocated array.
     for (int i = 0; i < size; ++i)
     {
         if (samps->data[pnum] <= data[i] && data[i] < samps->data[pnum + 1])
@@ -83,12 +82,9 @@ sort_worker(int pnum, float* data, long size, int P, floats* samps, long* sizes,
 
     printf("%d: start %.04f, count %ld\n", pnum, samps->data[pnum], xs->size);
 
-    // TODO: Sort the local array.
     qsort_floats(xs);
 
     barrier_wait(bb);
-    // TODO: Using the shared sizes array, determine where the local
-    // output goes in the global data array.
     long sum = 0, start = 0, end = 0;
     for (int i = 0; i < pnum; ++i)
     {
@@ -100,19 +96,12 @@ sort_worker(int pnum, float* data, long size, int P, floats* samps, long* sizes,
     {
         data[i] = xs->data[i - start];
     }
-
-    // TODO: Copy the local array to the appropriate place in the global array.
-
-    // TODO: Make sure this function doesn't have any data races.
     free_floats(xs);
 }
 
 void
 run_sort_workers(float* data, long size, int P, floats* samps, long* sizes, barrier* bb)
 {
-    // TODO: Spawn P processes running sort_worker
-    //
-    // TODO: Once all P processes have been started, wait for them all to finish.
     pid_t cur_pid, pids[P];
     for (int i = 0; i < P; ++i)
     {
@@ -136,7 +125,6 @@ run_sort_workers(float* data, long size, int P, floats* samps, long* sizes, barr
 void
 sample_sort(float* data, long size, int P, long* sizes, barrier* bb)
 {
-    // TODO: Sequentially sample the input data.
     floats * randomSample = sample(data, size, P);
     qsort_floats(randomSample);
     floats * samps = make_floats(P + 1);
@@ -146,8 +134,6 @@ sample_sort(float* data, long size, int P, long* sizes, barrier* bb)
     {
         samps->data[i + 1] = randomSample->data[i * 3 + 1];
     }
-    // TODO: Sort the input data using the sampled array to allocate work
-    // between parallel processes.
     run_sort_workers(data, size, P, samps, sizes, bb);
     free_floats(randomSample);
     free_floats(samps);
