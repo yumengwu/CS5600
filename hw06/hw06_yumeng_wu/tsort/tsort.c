@@ -65,7 +65,7 @@ qsort_floats(floats* xs)
 }
 
 floats*
-sample(float* data, long size, int P)
+sample(int P)
 {
     // TODO: Randomly sample 3*(P-1) items from the input data.
     int rss = 3 * (P - 1);
@@ -134,14 +134,12 @@ void run_sort_workers(int P)
     {
         pthread_join(threads[i], NULL);
     }
-    printf("after join\n");
 }
 
 void sample_sort(int P)
 {
-    floats * randomSample = sample(data, size, P);
+    floats * randomSample = sample(P);
     qsort_floats(randomSample);
-    floats_print(randomSample);
     samps = make_floats(P + 1);
     samps->data[0] = 0;
     samps->data[samps->size - 1] = __FLT_MAX__;
@@ -149,7 +147,6 @@ void sample_sort(int P)
     {
         samps->data[i + 1] = randomSample->data[i * 3 + 1];
     }
-    floats_print(samps);
     run_sort_workers(P);
     free_floats(randomSample);
     free_floats(samps);
@@ -164,7 +161,6 @@ main(int argc, char* argv[])
         return 1;
     }
     const int P = atoi(argv[1]);
-    printf("%d\n", P);
     const char* fname = argv[2];
 
     seed_rng();
@@ -180,12 +176,12 @@ main(int argc, char* argv[])
 
     bb = make_barrier(P);
 
-    for (int i = 0; i < size; ++i)
-    {
-        printf("%f ", data[i]);
-    }printf("\n");
-
     sample_sort(P);
+
+    lseek(fd, 0, SEEK_SET);
+    write(fd, (void *)(&size), sizeof(long));
+    write(fd, data, size * sizeof(float));
+    close(fd);
 
     free_barrier(bb);
 
