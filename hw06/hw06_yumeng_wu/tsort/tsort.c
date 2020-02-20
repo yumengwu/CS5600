@@ -80,21 +80,13 @@ sample(int P)
 void * sort_work(void * args)
 {
     int pnum = *((int *)(args));
-    floats* xs = NULL;
+    floats* xs = make_floats(0);
 
     for (int i = 0; i < size; ++i)
     {
         if (samps->data[pnum] <= data[i] && data[i] < samps->data[pnum + 1])
         {
-            if (!xs)
-            {
-                xs = make_floats(1);
-                xs->data[0] = data[i];
-            }
-            else
-            {
-                floats_push(xs, data[i]);
-            }
+            floats_push(xs, data[i]);
         }
     }
     sizes[pnum] = xs->size;

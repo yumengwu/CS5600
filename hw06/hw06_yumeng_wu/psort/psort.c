@@ -68,27 +68,17 @@ sample(float* data, long size, int P)
 void
 sort_worker(int pnum, float* data, long size, int P, floats* samps, long* sizes, barrier* bb)
 {
-    floats* xs = NULL;
+    floats* xs = make_floats(0);
 
     // TODO: Copy the data for our partition into a locally allocated array.
     for (int i = 0; i < size; ++i)
     {
         if (samps->data[pnum] <= data[i] && data[i] < samps->data[pnum + 1])
         {
-            if (!xs)
-            {
-                xs = make_floats(1);
-                xs->data[0] = data[i];
-            }
-            else
-            {
-                floats_push(xs, data[i]);
-            }
+            floats_push(xs, data[i]);
         }
     }
-    // sem_wait(&bb->mutex);
-    // --bb->count;
-    // sem_post(&bb->mutex);
+    
     sizes[pnum] = xs->size;
 
     printf("%d: start %.04f, count %ld\n", pnum, samps->data[pnum], xs->size);
