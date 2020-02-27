@@ -183,8 +183,8 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_mytest\
-#	_test1\
-#	_test2\
+	_test1\
+	_test2\
 #	_test3\
 #	_test4\
 #	_test5\

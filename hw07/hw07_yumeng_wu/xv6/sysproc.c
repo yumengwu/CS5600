@@ -120,6 +120,10 @@ int sys_spalloc()
 
 int sys_spfree()
 {
-  cprintf("sys_spfree\n");
-  return 0;
+  int ptr;
+  if (argint(0, &ptr) < 0)
+  {
+    return -1;
+  }
+  return spfree(ptr);
 }

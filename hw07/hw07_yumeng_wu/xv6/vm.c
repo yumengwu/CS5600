@@ -10,6 +10,10 @@
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
 
+uint shm_tab[MAX_SHM_NUMBER_TOTAL] = {0};
+uint shm_cnt[MAX_SHM_NUMBER_TOTAL] = {0};
+int next_shm_tad_id = 0;  // global shm_tab id
+
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
 void
@@ -287,7 +291,7 @@ freevm(pde_t *pgdir)
 
   if(pgdir == 0)
     panic("freevm: no pgdir");
-  deallocuvm(pgdir, KERNBASE, 0);
+  deallocuvm(pgdir, USER_UB, 0);
   for(i = 0; i < NPDENTRIES; i++){
     if(pgdir[i] & PTE_P){
       char * v = P2V(PTE_ADDR(pgdir[i]));
@@ -385,60 +389,176 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   return 0;
 }
 
-int shm_alloc(pde_t * pgdir, uint old_shm_lb, uint new_shm_lb, int * used, void ** shmps)
+int has_shm(int tab_idx[])
 {
-  cprintf("shm_alloc\n");
-  if (old_shm_lb & 0xFFF || new_shm_lb & 0xFFF)
-  {
-    return 0;
-  }
-  int cnt = 0, i, nextfreeshm = -1, check_shm_used_flag = 1;
+  int i, res = 0;
   for (i = 0; i < MAX_SHM_NUMBER_PER_PROCESS; ++i)
   {
-    if (*used & check_shm_used_flag)
+    if (tab_idx[i] >= 0)
+      ++res;
+  }
+  return res;
+}
+
+int free_shm(pde_t * pgdir, uint va[], int tab_idx[])
+{
+  int i;
+  for (i = 0; i < MAX_SHM_NUMBER_PER_PROCESS; ++i)
+  {
+    if (tab_idx[i] >= 0 && shm_cnt[tab_idx[i]] == 1)
+    {
+      --shm_cnt[tab_idx[i]];
+      shm_dealloc(pgdir, va[i]);
+    }
+    else if (tab_idx[i] >= 0 && shm_cnt[tab_idx[i]] > 1)
+    {
+      --shm_cnt[tab_idx[i]];
+    }
+  }
+  return 0;
+}
+
+void incre_next_shm_tab()
+{
+  ++next_shm_tad_id;
+  if (next_shm_tad_id >= MAX_SHM_NUMBER_TOTAL)
+  {
+    next_shm_tad_id = 0;
+  }
+}
+
+int shm_copy(pde_t * src, uint shm_va[], int shmps_idx[], pde_t * dst)
+{
+  pde_t * pte;
+  uint pa;
+  int i;
+  for (i = 0; i < MAX_SHM_NUMBER_PER_PROCESS; ++i)
+  {
+    if (shm_va[i])
+    {
+      pte = walkpgdir(src, (void *) shm_va[i], 0);
+      if (!pte)
+      {
+        panic("shm_copy: pte should exist");
+      }
+      pa = PTE_ADDR(*pte);
+      mappages(dst, (void *) shm_va[i], PGSIZE, /*V2P(shm_tab[shmps_idx[i]])*/pa, PTE_U | PTE_W);
+      ++shm_cnt[shmps_idx[i]];
+    }
+  }
+  return 1;
+}
+
+int shm_dealloc(pde_t * pgdir, uint shm_va)
+{
+  pde_t * pte = walkpgdir(pgdir, (void *) shm_va, 0);
+  if (pte && (*pte & PTE_P) != 0)
+  {
+    uint pa = PTE_ADDR(*pte);
+    kfree(P2V(pa));
+    *pte = 0;
+  }
+  return 0;
+}
+
+int shm_alloc(pde_t * pgdir, uint old_shm, uint new_shm, int * used, int shms_idx[MAX_SHM_NUMBER_PER_PROCESS], uint shms_va[MAX_SHM_NUMBER_PER_PROCESS])
+{
+  if (old_shm & 0xfff || new_shm & 0xfff || old_shm < new_shm || old_shm > KERNBASE)
+    return 0;
+  int i;
+  // check process shared memory usage
+  int cnt = 0;  // number of shared memory used in process
+  int next_p_id = -1;  // next free id in process
+  for (i = 0; i < MAX_SHM_NUMBER_PER_PROCESS; ++i)
+  {
+    if (*used & (1 << i))
     {
       ++cnt;
     }
-    else if (nextfreeshm < 0)
+    else if (next_p_id < 0)
     {
-      nextfreeshm = i;
+      next_p_id = i;
     }
-    check_shm_used_flag <<= 1;
   }
-  if (cnt >= 10)
+  if (cnt >= MAX_SHM_NUMBER_PER_PROCESS)
   {
-    cprintf("achieve max shared memory page number\n");
+    cprintf("max shared memory number in process: %d\n", MAX_SHM_NUMBER_PER_PROCESS);
     return 0;
   }
-  char * newmem = kalloc();
-  if ((int) newmem == 0)
+  // check total available shared memory
+  int next_tab_id = -1;
+  for (i = 0; i < MAX_SHM_NUMBER_TOTAL; ++i)
   {
-    cprintf("alloc shared memory failed\n");
+    if (shm_tab[next_shm_tad_id] == 0)
+    {
+      next_tab_id = next_shm_tad_id;
+      incre_next_shm_tab();
+      break;
+    }
+    incre_next_shm_tab();
+  }
+  if (next_tab_id < 0)
+  {
+    cprintf("max shared memory: %d\n", MAX_SHM_NUMBER_TOTAL);
     return 0;
   }
-  memset(newmem, 0, PGSIZE);
-  mappages(pgdir, (char*)new_shm_lb, PGSIZE, V2P(newmem), PTE_W|PTE_U);
-  *used |= (1 << nextfreeshm);
-  shmps[nextfreeshm] = newmem;
-  return (int) newmem;
+
+  char * mem = kalloc();
+  if (mem == 0)
+  {
+    cprintf("kalloc failed\n");
+    return 0;
+  }
+  memset(mem, 0, PGSIZE);
+  mappages(pgdir, (void *) new_shm, PGSIZE, V2P(mem), PTE_U | PTE_W);
+
+  shms_va[next_p_id] = new_shm;
+  shms_idx[next_p_id] = next_tab_id;
+  shm_tab[next_tab_id] = (uint) mem;
+  shm_cnt[next_tab_id] = 1;
+  *used |= (1 << next_p_id);
+  return new_shm;
 }
 
 void* spalloc()
 {
-  cprintf("spalloc\n");
   struct proc * curproc = myproc();
   pde_t * pgdir = curproc->pgdir;
   uint shm_lb = curproc->shm_lb;
-  shm_lb = shm_alloc(pgdir, shm_lb, shm_lb - PGSIZE, &curproc->used_shm, curproc->shmps);
-  memset((void *)shm_lb, 'a', 10);
-  cprintf("%s\n", shm_lb);
-  cprintf("%d\n", shm_lb);
-  return (void *) shm_lb;
+  int shm_used = curproc->shm_used;
+  int res = shm_alloc(pgdir, shm_lb, shm_lb - PGSIZE, &shm_used, curproc->shms_idx, curproc->shms_va);
+  if (res == 0)
+  {
+    cprintf("spalloc failed\n");
+    return 0;
+  }
+  shm_lb -= PGSIZE;
+  curproc->shm_lb = shm_lb;
+  curproc->shm_used = shm_used;
+  return (void *) res;
 }
 
-int spfree(void * ptr)
+int spfree(uint va)
 {
-  cprintf("spfree");
+  int idx = -1, i;
+  struct proc * curproc = myproc();
+  for (i = 0; i < MAX_SHM_NUMBER_PER_PROCESS; ++i)
+  {
+    if (curproc->shms_va[i] == va)
+    {
+      idx = i;
+    }
+  }
+  if (idx < 0)
+    return -1;
+  int tab_idx = curproc->shms_idx[idx];
+  curproc->shm_used &= ~(1 << idx);
+  curproc->shms_va[idx] = 0;
+  curproc->shms_idx[idx] = -1;
+  if (--shm_cnt[tab_idx] == 0)
+  {
+    shm_dealloc(curproc->pgdir, va);
+  }
   return 0;
 }
 

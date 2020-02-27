@@ -88,8 +88,15 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  p->shm_lb = USER_UB;
-  p->used_shm = 0;
+
+  // init shm
+  p->shm_lb = KERNBASE;
+  p->shm_used = 0;
+  int i;
+  for (i = 0; i < MAX_SHM_NUMBER_PER_PROCESS; ++i)
+  {
+    p->shms_idx[i] = -1;
+  }
 
   release(&ptable.lock);
 
@@ -198,9 +205,18 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+  shm_copy(curproc->pgdir, curproc->shms_va, curproc->shms_idx, np->pgdir);
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+
+  np->shm_lb = curproc->shm_lb;
+  np->shm_used = curproc->shm_used;
+  for (i = 0; i < MAX_SHM_NUMBER_PER_PROCESS; ++i)
+  {
+    np->shms_idx[i] = curproc->shms_idx[i];
+    np->shms_va[i] = curproc->shms_va[i];
+  }
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -219,7 +235,6 @@ fork(void)
   np->state = RUNNABLE;
 
   release(&ptable.lock);
-
   return pid;
 }
 
@@ -335,6 +350,10 @@ wait(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
+        if (has_shm(p->shms_idx))
+        {
+          free_shm(p->pgdir, p->shms_va, p->shms_idx);
+        }
         freevm(p->pgdir);
         p->pid = 0;
         p->parent = 0;
@@ -376,6 +395,10 @@ int wait1(int * status)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
+        if (has_shm(p->shms_idx))
+        {
+          free_shm(p->pgdir, p->shms_va, p->shms_idx);
+        }
         freevm(p->pgdir);
         p->pid = 0;
         p->parent = 0;

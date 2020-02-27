@@ -52,8 +52,9 @@ struct proc {
   int exit_status;             // Exit status
 
   uint shm_lb;                    // Shared memory lower boundary
-  int used_shm;
-  void* shmps[MAX_SHM_NUMBER_PER_PROCESS];
+  int shm_used;                 // Used va
+  int shms_idx[MAX_SHM_NUMBER_PER_PROCESS]; // pa id in shm_tab
+  uint shms_va[MAX_SHM_NUMBER_PER_PROCESS];  // va array
 };
 
 // Process memory is laid out contiguously, low addresses first:

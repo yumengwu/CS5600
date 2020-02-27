@@ -11,6 +11,7 @@ struct stat;
 struct iostats;
 struct superblock;
 
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
@@ -190,7 +191,12 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 void*           spalloc();
-int             spfree(void *);
+int             spfree(uint);
+int             shm_alloc(pde_t*, uint, uint, int*, int*, uint*);
+int             shm_dealloc(pde_t*, uint);
+int             shm_copy(pde_t*, uint*, int*, pde_t*);
+int             has_shm(int*);
+int             free_shm(pde_t*, uint*, int*);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
