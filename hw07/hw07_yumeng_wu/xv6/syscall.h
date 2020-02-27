@@ -26,3 +26,6 @@
 #define SYS_wait1 25
 #define SYS_spalloc 26
 #define SYS_spfree 27
+#define SYS_mutex_init 28
+#define SYS_mutex_lock 29
+#define SYS_mutex_unlock 30

@@ -185,9 +185,9 @@ UPROGS=\
 	_mytest\
 	_test1\
 	_test2\
-#	_test3\
-#	_test4\
-#	_test5\
+	_test3\
+	_test4\
+	_test5\
 
 SCRIPTS=
 

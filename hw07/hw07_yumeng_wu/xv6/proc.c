@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "date.h"
 
 struct {
   struct spinlock lock;
@@ -20,10 +21,18 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+static uint rand_number = 0;
+
+struct spinlock mutex_spinlock;
+
+struct mutex_table mtab[NPDENTRIES] = {{0, 0}};
+int next_mt_id = 0;
+
 void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+  initlock(&mutex_spinlock, "mutexlock");
 }
 
 // Must be called with interrupts disabled
@@ -575,6 +584,22 @@ wakeup1(void *chan)
       p->state = RUNNABLE;
 }
 
+static void
+wakeup1_1(void *chan)
+{
+  struct proc *p;
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if(p->state == SLEEPING && p->chan == chan)
+    {
+      p->state = RUNNABLE;
+      break;
+    }
+  }
+    
+}
+
 // Wake up all processes sleeping on chan.
 void
 wakeup(void *chan)
@@ -642,4 +667,71 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int mutex_init(mutex_t * mutex)
+{
+  if (rand_number == 0)
+  {
+    acquire(&tickslock);
+    rand_number = ticks;
+    release(&tickslock);
+  }
+  acquire(&mutex_spinlock);
+  rand_number = ((rand_number * 10001701) % 0x7fffffff) | 0x80000000;
+  int i, res = -1;
+  for (i = 0; i < NPDENTRIES; ++i)
+  {
+    if (mtab[next_mt_id].chan == 0)
+    {
+      res = next_mt_id;
+      break;
+    }
+    ++next_mt_id;
+    if (next_mt_id >= NPROC)
+    {
+      next_mt_id = 0;
+    }
+  }
+  if (res < 0)
+  {
+    release(&mutex_spinlock);
+    return -1;
+  }
+  mutex->id = next_mt_id;
+  mtab[next_mt_id].chan = (void *) rand_number;
+  mtab[next_mt_id].count = 1;
+  release(&mutex_spinlock);
+  // cprintf("%d %d %d\n", mutex->id, mtab[next_mt_id].chan, mtab[next_mt_id].count);
+  return 0;
+}
+
+int mutex_lock(mutex_t * mutex)
+{
+  acquire(&mutex_spinlock);
+  // cprintf("lock cur: %d, id: %d\n", mtab[mutex->id].count, mutex->id);
+  if (--mtab[mutex->id].count < 0)
+  {
+    sleep((void *) mtab[mutex->id].chan, &mutex_spinlock);
+    release(&mutex_spinlock);
+    return 0;
+  }
+  release(&mutex_spinlock);
+  return 0;
+}
+
+int mutex_unlock(mutex_t * mutex)
+{
+  acquire(&mutex_spinlock);
+  // cprintf("unlock cur: %d, id: %d\n", mtab[mutex->id].count, mutex->id);
+  if (++mtab[mutex->id].count <= 0)
+  {
+    wakeup1_1(mtab[mutex->id].chan);
+  }
+  else
+  {
+    wakeup(mtab[mutex->id].chan);
+  }
+  release(&mutex_spinlock);
+  return 0;
 }

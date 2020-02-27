@@ -124,6 +124,12 @@ exec(char *path, char **argv)
   curproc->sz = sz;
   curproc->tf->eip = pointer_new_entry;  // main
   curproc->tf->esp = sp;
+  if (has_shm(curproc->shms_idx))
+  {
+    free_shm(oldpgdir, curproc->shms_va, curproc->shms_idx);
+  }
+  curproc->shm_lb = KERNBASE;
+  curproc->shm_used = 0;
   int ii = 0;
   for (ii = 0; ii < NOFILE; ++ii) {
     if (curproc->ofile[ii]) {

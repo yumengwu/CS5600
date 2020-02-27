@@ -10,6 +10,10 @@ struct sleeplock;
 struct stat;
 struct iostats;
 struct superblock;
+struct mutex_table {
+    int count;
+    void * chan;
+};
 
 
 // bio.c
@@ -125,6 +129,9 @@ void            wakeup(void*);
 void            yield(void);
 void            exit1(int);
 int             wait1(int *);
+int             mutex_init(mutex_t *);
+int             mutex_lock(mutex_t *);
+int             mutex_unlock(mutex_t *);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

@@ -127,3 +127,36 @@ int sys_spfree()
   }
   return spfree(ptr);
 }
+
+int sys_mutex_init()
+{
+  int i;
+  if (argint(0, &i) < 0)
+    return -1;
+  mutex_t * m = (mutex_t *) i;
+  if (!m)
+    return -1;
+  return mutex_init(m);
+}
+
+int sys_mutex_lock()
+{
+  int i;
+  if (argint(0, &i) < 0)
+    return -1;
+  mutex_t * m = (mutex_t *) i;
+  if (!m)
+    return -1;
+  return mutex_lock(m);
+}
+
+int sys_mutex_unlock()
+{
+  int i;
+  if (argint(0, &i) < 0)
+    return -1;
+  mutex_t * m = (mutex_t *) i;
+  if (!m)
+    return -1;
+  return mutex_unlock(m);
+}

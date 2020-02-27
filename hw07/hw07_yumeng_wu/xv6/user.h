@@ -30,6 +30,9 @@ int exit1(int) __attribute__((noreturn));;
 int wait1(int *);
 void* spalloc();
 void spfree(void* ptr);
+int mutex_init(mutex_t* lock);
+int mutex_lock(mutex_t* lock);
+int mutex_unlock(mutex_t* lock);
 
 // ulib.c
 int stat(const char*, struct stat*);
