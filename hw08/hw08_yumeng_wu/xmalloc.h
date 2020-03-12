@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <sys/sem.h>
+#include <pthread.h>
 
 void* xmalloc(size_t bytes);
 void  xfree(void* ptr);
