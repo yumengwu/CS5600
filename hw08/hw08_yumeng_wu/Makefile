@@ -49,10 +49,3 @@ test:
 	perl test.pl
 
 .PHONY: clean test
-
-mytest: mytest.o xv6_malloc.o
-	gcc -o mytest mytest.o xv6_malloc.o
-mytest.o: mytest.c xmalloc.h
-	gcc -c mytest.c
-xv6_malloc.o: xv6_malloc.c xmalloc.h
-	gcc -c xv6_malloc.c

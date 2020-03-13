@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "types.h": "c",
-        "cstdlib": "c"
+        "cstdlib": "c",
+        "random": "c",
+        "cstddef": "c"
     }
 }
