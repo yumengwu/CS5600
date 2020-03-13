@@ -1,0 +1,44 @@
+1. Compare your optimized allocator to the xv6 allocator. For each
+of (list, ivec), pick an input size where the slower allocator takes
+about 10 seconds. How fast did each allocator run for that input?
+Which one was faster and by how much? Show measurements with a table.
+
+        list            ivec
+xv6     140000          8000
+opt     450000          1100000
+
+We can see optimized allocator is faster.
+
+2. Compare your optimized allocator to the system allocator. For each
+of (list, ivec), pick an input size where the slower allocator takes
+about 10 seconds. How fast did each allocator run for that input?
+Which one was faster and by how much? Show measurements with a table.
+
+        list            ivec
+xv6     450000          1100000
+opt     450000          1100000
+
+We can see that there is no difference between optimized allocator
+and system allocator.
+
+3. What techniques did you use in your optimized allocator.
+Free list.
+
+4. How does your allocator handle reusing memory?
+
+When calling free, add memory block to free list, than merge free
+list if two blocks could be merged together. These could make
+memory reusable.
+
+5. What was the most significant challenge in building your
+optimized allocator.
+
+The lost significant challenge is understand what acctually happens
+when running malloc and free, since the algorithm behind methods
+is very comlex.
+
+6. If you were to redo the assignment would you use the same
+allocator design? Why?
+
+I will not use the same design because fre list is not efficient
+enough. I would use buddy system or buckets instead.
