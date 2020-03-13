@@ -202,7 +202,8 @@ void add_free_list(struct block *b)
 void xfree(void *ptr)
 {
     // TODO: write an optimized free
-    return free(ptr);
+    free(ptr);
+    return;
     add_free_list((void *)((size_t)ptr - sizeof(struct block)));
 
     merge();
@@ -211,7 +212,7 @@ void xfree(void *ptr)
 void *xrealloc(void *prev, size_t bytes)
 {
     // TODO: write an optimized realloc
-    return xrealloc(prev, bytes);
+    return realloc(prev, bytes);
     struct block * ptr = (void *)((size_t)prev - sizeof(struct block));
     if (ptr->size > bytes)
     {
