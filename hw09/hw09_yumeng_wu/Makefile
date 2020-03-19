@@ -7,6 +7,11 @@ CFLAGS := -g -Wall -Werror -I./tests -I.
 
 all: $(BINS)
 
+test: test.o gc.o
+	gcc -o test test.o gc.o
+test.o: test.c gc.h
+	gcc -c test.c
+
 test1: tests/test1.o gc.o
 	$(CC) -o $@ $^
 

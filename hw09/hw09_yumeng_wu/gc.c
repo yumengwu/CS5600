@@ -138,8 +138,36 @@ insert_free(u16 coff, cell* item)
 
     // TODO: insert item into list in
     // sorted order and coalesce if needed
-
+    blocks_freed += 1;
+    bytes_freed += item->size * ALLOC_UNIT;
+    u16 itemOff = p2o(item);
+    cell * cc = chunk_base;
+    cc->next = free_list;
+    while (cc->next && cc->next < itemOff) {
+        cc = o2p(cc->next);
+    }
+    o2p(itemOff)->next = cc->next;
+    cc->next = itemOff;
+    if (cc == chunk_base) {
+        free_list = itemOff;
+    }
     return 0;
+}
+
+void merge_free()
+{
+    if (!free_list) return;
+    u16 idx = free_list;
+    while (idx) {
+        if (idx + o2p(idx)->size == o2p(idx)->next) {
+            u16 next = o2p(o2p(idx)->next)->next;
+            o2p(idx)->size += o2p(o2p(idx)->next)->size;
+            o2p(idx)->next = next;
+        }
+        else {
+            idx = o2p(idx)->next;
+        }
+    }
 }
 
 static
@@ -165,7 +193,7 @@ gc_init(void* main_frame)
     memset(chunk_base, 0, CHUNK_SIZE);
 
     cell* base_cell = (cell*) o2p(1);
-    base_cell->size = CELL_COUNT - 1;   // not -2??
+    base_cell->size = CELL_COUNT - 1;
     base_cell->next = 0;
 
     free_list = 1;
@@ -228,10 +256,10 @@ gc_malloc1(size_t bytes)
             // This currently just allocates the whole heap to the first
             // request.
             //
-            int next_cell_off = *pptr + units + 1;
+            int next_cell_off = *pptr + units;
             if (units < cc->size) {
               cell * next_cell = o2p(next_cell_off);
-              next_cell->size = cc->size - units - 1;
+              next_cell->size = cc->size - units;
               next_cell->next = cc->next;
               cc->size = units;
               cc->next = next_cell_off;
@@ -290,10 +318,22 @@ gc_malloc(size_t bytes)
     abort();
 }
 
+static void mark_one(intptr_t addr)
+{
+    for (u16 idx = used_list; idx != 0; idx = o2p(idx)->next) {
+        cell * cc = o2p(idx);
+        if ((void *) *(long *) addr >= (void *) cc + 1 && (void *)*(long *) addr < ((void *) cc) + cc->size * CHUNK_SIZE) {
+            cc->mark = 1;
+            break;
+        }
+    }
+}
+
 static
 void
 mark_range(intptr_t bot, intptr_t top)
 {
+    // printf("mark range %ld %ld %ld\n", bot, top, top - bot);
     intptr_t chunk_bot = (intptr_t)chunk_base;
     intptr_t chunk_top = chunk_bot + CHUNK_SIZE;
 
@@ -306,6 +346,15 @@ mark_range(intptr_t bot, intptr_t top)
     //
     // If a pointer exists to an allocated block, set its mark flag
     // and recursively mark_range on the memory in that block.
+    for (u16 idx = used_list; idx != 0; idx = o2p(idx)->next) {
+        o2p(idx)->mark = 0;
+    }
+
+    for (intptr_t ptr = bot; ptr < top - sizeof(long); ++ptr) {
+        if (*(long *) ptr >= chunk_bot && *(long *) ptr <= chunk_top) {
+            mark_one(ptr);
+        }
+    }
 }
 
 static
@@ -323,6 +372,24 @@ sweep()
 {
     // TODO: For each item on the used list, check if it's been
     // marked. If not, free it - probalby by calling insert_free.
+    u16 prev = 0, idx = used_list;
+    while (idx) {
+        cell * cc = o2p(idx);
+        if (!cc->mark) {
+            if (prev) {
+                o2p(prev)->next = cc->next;
+            }
+            if (idx == used_list) {
+                used_list = cc->next;
+            }
+            idx = cc->next;
+            insert_free(0, cc);
+        }
+        else {
+            prev = idx;
+            idx = cc->next;
+        }
+    }
 }
 
 void
@@ -330,4 +397,5 @@ gc_collect()
 {
     mark();
     sweep();
+    merge_free();
 }
