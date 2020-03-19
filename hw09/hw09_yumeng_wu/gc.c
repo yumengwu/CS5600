@@ -165,7 +165,7 @@ gc_init(void* main_frame)
     memset(chunk_base, 0, CHUNK_SIZE);
 
     cell* base_cell = (cell*) o2p(1);
-    base_cell->size = CELL_COUNT - 1;
+    base_cell->size = CELL_COUNT - 1;   // not -2??
     base_cell->next = 0;
 
     free_list = 1;
@@ -228,12 +228,20 @@ gc_malloc1(size_t bytes)
             // This currently just allocates the whole heap to the first
             // request.
             //
-            // if (units < cc->size) {
-            //   do something
-            // }
-            // else {
-            //   this is doing the right thing for this case
-            // }
+            int next_cell_off = *pptr + units + 1;
+            if (units < cc->size) {
+              cell * next_cell = o2p(next_cell_off);
+              next_cell->size = cc->size - units - 1;
+              next_cell->next = cc->next;
+              cc->size = units;
+              cc->next = next_cell_off;
+              if (free_list == *pptr) {
+                  free_list = next_cell_off;
+              }
+            }
+            else {
+              ;
+            }
 
             cell* dd = 0;
             *pptr = cc->next;
