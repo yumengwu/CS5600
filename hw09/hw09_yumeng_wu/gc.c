@@ -319,7 +319,8 @@ gc_malloc(size_t bytes)
 
 static cell * mark_one(intptr_t addr)
 {
-    for (u16 idx = used_list; idx != 0; idx = o2p(idx)->next) {
+    // printf("mark one: %ld %ld\n", addr, *(long *) addr);
+    for (u16 idx = used_list; idx; idx = o2p(idx)->next) {
         cell * cc = o2p(idx);
         if ((void *) *(long *) addr >= (void *) cc + 1 && (void *)*(long *) addr < ((void *) cc) + cc->size * ALLOC_UNIT) {
             cc->mark = 1;
@@ -336,6 +337,7 @@ mark_range(intptr_t bot, intptr_t top)
     // printf("mark range %ld %ld %ld\n", bot, top, top - bot);
     intptr_t chunk_bot = (intptr_t)chunk_base;
     intptr_t chunk_top = chunk_bot + CHUNK_SIZE;
+    // printf("chunk range %ld %ld\n", chunk_bot, chunk_top);
 
     // TODO: Delete this next line.
     (void) (chunk_bot + chunk_top);
@@ -349,8 +351,11 @@ mark_range(intptr_t bot, intptr_t top)
 
     for (intptr_t ptr = bot; ptr < top - sizeof(long); ++ptr) {
         if (*(long *) ptr >= chunk_bot && *(long *) ptr <= chunk_top) {
+            // mark_one(ptr);
             cell * cc = mark_one(ptr);
-            mark_range((intptr_t)((void *)cc + 1), (intptr_t)((void *)cc + 1) + cc->size * ALLOC_UNIT);
+            if (cc) {
+                mark_range((intptr_t)((void *)cc + 1), (intptr_t)((void *)cc + 1) + cc->size * ALLOC_UNIT);
+            }
         }
     }
 }
