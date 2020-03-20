@@ -135,7 +135,6 @@ u16
 insert_free(u16 coff, cell* item)
 {
     assert(item != 0);
-
     // TODO: insert item into list in
     // sorted order and coalesce if needed
     blocks_freed += 1;
@@ -322,7 +321,7 @@ static cell * mark_one(intptr_t addr)
 {
     for (u16 idx = used_list; idx != 0; idx = o2p(idx)->next) {
         cell * cc = o2p(idx);
-        if ((void *) *(long *) addr >= (void *) cc + 1 && (void *)*(long *) addr < ((void *) cc) + cc->size * CHUNK_SIZE) {
+        if ((void *) *(long *) addr >= (void *) cc + 1 && (void *)*(long *) addr < ((void *) cc) + cc->size * ALLOC_UNIT) {
             cc->mark = 1;
             return cc;
         }
@@ -351,7 +350,7 @@ mark_range(intptr_t bot, intptr_t top)
     for (intptr_t ptr = bot; ptr < top - sizeof(long); ++ptr) {
         if (*(long *) ptr >= chunk_bot && *(long *) ptr <= chunk_top) {
             cell * cc = mark_one(ptr);
-            mark_range((intptr_t)((void *)cc + 1), (intptr_t)((void *)cc + 1) + cc->size * ALLOC_UNIT - 1);
+            mark_range((intptr_t)((void *)cc + 1), (intptr_t)((void *)cc + 1) + cc->size * ALLOC_UNIT);
         }
     }
 }
