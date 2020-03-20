@@ -318,15 +318,16 @@ gc_malloc(size_t bytes)
     abort();
 }
 
-static void mark_one(intptr_t addr)
+static cell * mark_one(intptr_t addr)
 {
     for (u16 idx = used_list; idx != 0; idx = o2p(idx)->next) {
         cell * cc = o2p(idx);
         if ((void *) *(long *) addr >= (void *) cc + 1 && (void *)*(long *) addr < ((void *) cc) + cc->size * CHUNK_SIZE) {
             cc->mark = 1;
-            break;
+            return cc;
         }
     }
+    return 0;
 }
 
 static
@@ -346,13 +347,11 @@ mark_range(intptr_t bot, intptr_t top)
     //
     // If a pointer exists to an allocated block, set its mark flag
     // and recursively mark_range on the memory in that block.
-    for (u16 idx = used_list; idx != 0; idx = o2p(idx)->next) {
-        o2p(idx)->mark = 0;
-    }
 
     for (intptr_t ptr = bot; ptr < top - sizeof(long); ++ptr) {
         if (*(long *) ptr >= chunk_bot && *(long *) ptr <= chunk_top) {
-            mark_one(ptr);
+            cell * cc = mark_one(ptr);
+            mark_range((intptr_t)((void *)cc + 1), (intptr_t)((void *)cc + 1) + cc->size * ALLOC_UNIT - 1);
         }
     }
 }
@@ -361,6 +360,9 @@ static
 void
 mark()
 {
+    for (u16 idx = used_list; idx; idx = o2p(idx)->next) {
+        o2p(idx)->mark = 0;
+    }
     intptr_t stack_bot = 0;
     intptr_t bot = (intptr_t) &stack_bot;
     mark_range(bot, stack_top);
@@ -396,6 +398,9 @@ void
 gc_collect()
 {
     mark();
+    // for (u16 idx = used_list; idx; idx = o2p(idx)->next) {
+    //     printf("used idx %d, size %d, mark %d\n", idx, o2p(idx)->size, o2p(idx)->mark);
+    // }
     sweep();
     merge_free();
 }
