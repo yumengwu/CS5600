@@ -28,7 +28,7 @@ fn main() {
     // Create output file
     {
         let mut outf = File::create(out_path).unwrap();
-        let tmp = size.to_ne_bytes();
+        let tmp = size.to_le_bytes();
         outf.write_all(&tmp).unwrap();
         outf.set_len(size).unwrap();
     }
@@ -38,6 +38,7 @@ fn main() {
     // Spawn worker threads
     let sizes = Arc::new(Mutex::new(vec![0u64; threads]));
     let barrier = Arc::new(Barrier::new(threads));
+    let mutex__ = Arc::new(Mutex::new(0 as u32));
 
     for ii in 0..threads {
         let inp = inp_path.clone();
@@ -45,9 +46,10 @@ fn main() {
         let piv = pivots.clone();
         let szs = sizes.clone();
         let bar = barrier.clone();
+        let mm = mutex__.clone();
 
         let tt = thread::spawn(move || {
-            worker(ii, inp, out, piv, szs, bar);
+            worker(ii, inp, out, piv, szs, bar, mm);
         });
         workers.push(tt);
     }
@@ -60,7 +62,7 @@ fn main() {
 
 fn read_size(file: &mut File) -> u64 {
     // TODO: Read size field from data file
-    file.metadata().unwrap().len()
+    (file.metadata().unwrap().len() - 8) / 4
     // 0
 }
 
@@ -125,7 +127,7 @@ fn find_pivots(file: &mut File, threads: usize) -> Vec<f32> {
     let mut random_samples = sample(file, count, number);
 
     // TODO: Sort the sampled list
-    quick_sort(&mut random_samples, 0, count - 1);
+    quick_sort(&mut random_samples, 0, count.wrapping_sub(1));
 
     let mut pivots = vec![0f32];
 
@@ -145,19 +147,45 @@ fn worker(
     pivots: Vec<f32>,
     sizes: Arc<Mutex<Vec<u64>>>,
     bb: Arc<Barrier>,
+    mm: Arc<Mutex<u32>>,
 ) {
-    println!("tid {}", tid);
     // TODO: Open input as local fh
+    let mut file = File::open(inp_path).unwrap();
 
     // TODO: Scan to collect local data
-    let data = vec![0f32, 1f32];
+    // let data = vec![0f32, 1f32];
+    let mut data: Vec<f32> = Vec::new();
+    {
+        let mut size_buf = [0; 8];
+        file.read(&mut size_buf);
+        let number = u64::from_le_bytes(size_buf);
+        for i in 0..number {
+            let xx = read_item(&mut file, i);
+            if xx >= pivots[tid] && xx < pivots[tid.wrapping_add(1)] {
+                data.push(xx);
+            }
+        }
+    }
 
     // TODO: Write local size to shared sizes
     {
         // curly braces to scope our lock guard
+        sizes.lock().unwrap()[tid] = data.len() as u64;
     }
 
+    // println!("wait");
+    // bb.wait();
+
+    // {
+    //     let ssss = sizes.lock().unwrap().len();
+    //     for i in 0..ssss {
+    //         println!("tid: {}, i: {}, sizes: {}", tid, i, sizes.lock().unwrap()[i]);
+    //     }
+    // }
+
     // TODO: Sort local data
+    let size = data.len().clone().wrapping_sub(1);
+    quick_sort(&mut data, 0, size);
 
     // Here's our printout
     println!("{}: start {}, count {}", tid, &data[0], data.len());
@@ -170,11 +198,24 @@ fn worker(
         cur.write_all(&tmp).unwrap();
     }
 
+    bb.wait();
+
     // TODO: Get position for output file
-    let prev_count = {
-        // curly braces to scope our lock guard
-        5
-    };
+    // let prev_count = {
+    //     // curly braces to scope our lock guard
+    //     5
+    // };
+    let mut start: u64 = 0;
+    {
+        let vv = sizes.lock().unwrap();
+        for i in 0..tid {
+            start += vv[i].clone();
+        }
+    }
+    let mut end: u64 = start;
+    {
+        end += sizes.lock().unwrap()[tid];
+    }
 
     /*
     let mut outf = OpenOptions::new()
@@ -183,6 +224,20 @@ fn worker(
         .open(out_path).unwrap();
     */
     // TODO: Seek and write local buffer.
+    {
+        let mmm = mm.lock().unwrap();
+        let mut outf = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(out_path)
+            .unwrap();
+        outf.seek(SeekFrom::Start(8 + start * 4));
+        for xx in &data {
+            let tmp = xx.to_le_bytes();
+            outf.write_all(&tmp).unwrap();
+        }
+        // let mut bytes = [0; ];
+    }
 
     // TODO: Figure out where the barrier goes.
 }
