@@ -28,7 +28,7 @@ fn main() {
     // Create output file
     {
         let mut outf = File::create(out_path).unwrap();
-        let tmp = size.to_le_bytes();
+        let tmp = size.to_ne_bytes();
         outf.write_all(&tmp).unwrap();
         outf.set_len(size).unwrap();
     }
@@ -233,7 +233,7 @@ fn worker(
             .unwrap();
         outf.seek(SeekFrom::Start(8 + start * 4));
         for xx in &data {
-            let tmp = xx.to_le_bytes();
+            let tmp = xx.to_ne_bytes();
             outf.write_all(&tmp).unwrap();
         }
         // let mut bytes = [0; ];
