@@ -191,12 +191,12 @@ fn worker(
     println!("{}: start {}, count {}", tid, &data[0], data.len());
 
     // TODO: Write data to local buffer
-    let mut cur = Cursor::new(vec![]);
+    // let mut cur = Cursor::new(vec![]);
 
-    for xx in &data {
-        let tmp = xx.to_ne_bytes();
-        cur.write_all(&tmp).unwrap();
-    }
+    // for xx in &data {
+    //     let tmp = xx.to_ne_bytes();
+    //     cur.write_all(&tmp).unwrap();
+    // }
 
     bb.wait();
 
@@ -225,7 +225,7 @@ fn worker(
     */
     // TODO: Seek and write local buffer.
     {
-        let mmm = mm.lock().unwrap();
+        // let mmm = mm.lock().unwrap();
         let mut outf = OpenOptions::new()
             .read(true)
             .write(true)

@@ -1,0 +1,43 @@
+1. The operating system, processor model, number of processor cores,
+and amount of RAM for your local machine.
+
+OS: mac OS X 10.15.3
+Processor model: 2.3 GHz Dual-Core Intel Core i5
+Number of processor cores: 4
+RAM: 8G
+
+2. The operating system, processor model, number of processor cores,
+and amount of RAM for the CCIS server.
+
+Operating system: CentOS Linux 7
+Processor model: Intel(R) Xeon(R) Gold 5118 CPU @ 2.30GHz
+Number of processor cores: 48
+RAM: 191694MB
+
+3. A table of measured time and parallel speedup for each test
+
+test                            measured time   parallel speedup
+Local machine, 1 threads        11.208s         1
+Local machine, 4 threads        11.328s         0.99
+Local machine, 8 threads        13.789s         0.81
+The CCIS server, 1 threads      11.268s         1
+The CCIS server, 4 threads      8.318s          1.35
+The CCIS server, 8 threads      9.612s          1.17
+
+4. Two or three paragraphs discussing what results you got and why
+you got them.
+
+For local machine, we can see that there is no difference between
+single thread and multi-threads. The reason may be although we have
+multi threads, each thread would have more work, so the total time
+is the same. And File I/O might be another reason.
+
+5. Two or three paragraphs discussing the pros and cons of Rust as
+an alternative to C for this sort of program.
+
+pros:
+Rust is much safer to handle memory.
+cons:
+C has a better performance.
+C is much easier to write.
+C has a better readability.
