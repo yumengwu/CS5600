@@ -12,6 +12,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
         println!("Usage: {} <threads> input output", args[0]);
+        return;
     }
 
     let threads = args[1].parse::<usize>().unwrap();
@@ -59,30 +60,79 @@ fn main() {
 
 fn read_size(file: &mut File) -> u64 {
     // TODO: Read size field from data file
-    0
+    file.metadata().unwrap().len()
+    // 0
 }
 
 fn read_item(file: &mut File, ii: u64) -> f32 {
     // TODO: Read the ii'th float from data file
-    0.0
+    let mut num_buf = [0; 4];
+    file.seek(SeekFrom::Start(8 + ii * 4));
+    file.read(&mut num_buf);
+    f32::from_le_bytes(num_buf)
 }
 
 fn sample(file: &mut File, count: usize, size: u64) -> Vec<f32> {
     let mut rng = rand::thread_rng();
-    let mut ys = vec![];
+    let mut ys: Vec<f32> = Vec::new();
 
     // TODO: Sample 'count' random items from the
     // provided file
+    let mut i = 0;
+    while i < count {
+        let idx = rng.gen_range(0, size);
+        ys.push(read_item(file, idx));
+        i += 1;
+    }
 
     ys
 }
 
+fn swap_f32(arr: &mut Vec<f32>, i: usize, j: usize) {
+    let temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+}
+
+fn partition(arr: &mut Vec<f32>, left: usize, right: usize) -> usize {
+    let pivot = arr[right];
+    let mut i = left.clone().wrapping_sub(1);
+    for j in (left.clone()..right.clone()) {
+        if arr[j] < pivot {
+            i = i.wrapping_add(1);
+            swap_f32(arr, i, j);
+        }
+    }
+    swap_f32(arr, i.wrapping_add(1), right.clone());
+    i.wrapping_add(1)
+}
+
+fn quick_sort(arr: &mut Vec<f32>, l: usize, r: usize) {
+    if (l as isize) < (r as isize) {
+        let p = partition(arr, l, r);
+        quick_sort(arr, l, p.wrapping_sub(1));
+        quick_sort(arr, p.wrapping_add(1), r);
+    }
+}
+
 fn find_pivots(file: &mut File, threads: usize) -> Vec<f32> {
     // TODO: Sample 3*(threads-1) items from the file
+    let mut count_buf = [0; 8];
+    file.read(&mut count_buf);
+    let number = u64::from_le_bytes(count_buf); // total numbers
+    let count = 3 * (threads - 1);
+
+    let mut random_samples = sample(file, count, number);
+
     // TODO: Sort the sampled list
+    quick_sort(&mut random_samples, 0, count - 1);
+
     let mut pivots = vec![0f32];
 
     // TODO: push the pivots into the array
+    for i in 0..threads.wrapping_sub(1) {
+        pivots.push(random_samples[i * 3 + 1]);
+    }
 
     pivots.push(f32::INFINITY);
     pivots
@@ -96,6 +146,7 @@ fn worker(
     sizes: Arc<Mutex<Vec<u64>>>,
     bb: Arc<Barrier>,
 ) {
+    println!("tid {}", tid);
     // TODO: Open input as local fh
 
     // TODO: Scan to collect local data
