@@ -28,6 +28,7 @@ int halt(void);
 int getiostats(int, struct iostats *);
 int exit1(int) __attribute__((noreturn));;
 int wait1(int *);
+int waitpid(int, int *);
 
 // ulib.c
 int stat(const char*, struct stat*);

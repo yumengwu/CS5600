@@ -24,3 +24,4 @@
 #define SYS_getiostats 23
 #define SYS_exit1 24
 #define SYS_wait1 25
+#define SYS_waitpid 26

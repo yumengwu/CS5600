@@ -41,6 +41,16 @@ int sys_wait1(void)
   return wait1(status);
 }
 
+int sys_waitpid(void)
+{
+  int pid;
+  if (argint(0, &pid) < 0)
+    return -1;
+  int * status;
+  argptr(1, (void*)&status, sizeof(status));
+  return waitpid(pid, status);
+}
+
 int
 sys_kill(void)
 {

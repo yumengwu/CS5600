@@ -107,6 +107,7 @@ extern int sys_halt(void);
 extern int sys_getiostats(void);
 extern int sys_exit1(void);
 extern int sys_wait1(void);
+extern int sys_waitpid(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -134,6 +135,7 @@ static int (*syscalls[])(void) = {
 [SYS_getiostats] sys_getiostats,
 [SYS_exit1]   sys_exit1,
 [SYS_wait1]   sys_wait1,
+[SYS_waitpid] sys_waitpid,
 };
 
 void
