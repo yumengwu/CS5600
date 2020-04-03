@@ -182,7 +182,6 @@ UPROGS=\
 	_usertests\
 	_wc\
 	_zombie\
-	_mytest\
 	_status\
 	_true\
 	_false\

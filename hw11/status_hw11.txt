@@ -1,0 +1,34 @@
+== HW11 Questions ==
+
+Which assignment did you resubmit?
+Assignment 5
+
+
+
+What's the URL of your new submission to that homework?
+(e.g. https://inkfish.ccs.neu.edu/subs/554 )
+https://inkfish.ccs.neu.edu/subs/6170
+
+
+
+Did you complete the homework to the origional requirements? If not, what's
+still not finished?
+Yes
+
+
+
+What significant addition did you add to your new submission?
+1. Add a waitpid(int pid, int * status) method. If pid > 0, this method will
+wait specific process with pid, and if pid == -1, this method will wait any
+child process.
+2. For shell, add a .profile which contains directories. When run command, if
+current directory dose not contain that binary file, sh will search that file
+from those directories. For example, when in a /test directory with .profile
+contain / directory and /bin directory, ls is not at there, so shell will find
+if there is a /ls or there is a /bin/ls.
+
+
+
+
+Is your significant addition complete? If not, what's missing?
+Yes

@@ -55,6 +55,13 @@ int fork1(void);  // Fork but panics on failure.
 void panic(char*);
 struct cmd *parsecmd(char*);
 
+struct node {
+  char * str;
+  struct node * next;
+};
+
+static struct node head;
+
 // Execute cmd.  Never returns.
 void
 runcmd(struct cmd *cmd)
@@ -79,7 +86,32 @@ runcmd(struct cmd *cmd)
     if(ecmd->argv[0] == 0)
       exit();
     if (fork1() == 0) {
-      exec(ecmd->argv[0], ecmd->argv);
+      int ffdd = open(ecmd->argv[0], 0);
+      if (ffdd < 0) {
+        struct node * cur = head.next;
+        while (cur) {
+          int cl = strlen(cur->str);
+          int slen = cl + strlen(ecmd->argv[0]) + 1;
+          char str[slen + 2];
+          memset(str, 0, slen + 2);
+          strcpy(str, cur->str);
+          str[cl] = '/';
+          int ii = cl + 1;
+          for (; ii < slen; ++ii) {
+            str[ii] = ecmd->argv[0][ii - cl - 1];
+          }
+          ffdd = open(str, 0);
+          if (ffdd > 0) {
+            exec(str, ecmd->argv);
+            printf(2, "exec %s failed\n", ecmd->argv[0]);
+            exit1(1);
+          }
+          cur = cur->next;
+        }
+      }
+      else {
+        exec(ecmd->argv[0], ecmd->argv);
+      }
       printf(2, "exec %s failed\n", ecmd->argv[0]);
       exit1(1);
     }
@@ -211,9 +243,112 @@ int runScript(char * scriptName)
   return status;
 }
 
+void init_profile()
+{
+  int fd = open("/.profile", 0);
+  if (fd < 0) {
+    fd = open("/.profile", 513);
+    char default_path[] = "PATH=/:/bin\n";
+    write(fd, default_path, strlen(default_path));
+    close(fd);
+    fd = open("/.profile", 0);
+  }
+  struct stat st;
+  fstat(fd, &st);
+  uint size = st.size;
+  if (size == 0) {
+    return;
+  }
+  char content[size + 1];
+  if (read(fd, content, size) != size) {
+    return;
+  }
+  int cnt_line = 0;
+  int idx = 0;
+  while (idx < size) {
+    if (content[idx++] == '\n') {
+      ++cnt_line;
+    }
+  }
+  if (content[size - 1] != '\n') ++cnt_line;
+  head.next = 0;
+  idx = 0;
+  int i;
+  for (i = 0; i < cnt_line; ++i) {
+    int j = idx;
+    while (j < size && content[j] != '\n') ++j;
+    if (j > idx) {
+      int line_len = j - idx;
+      char line[line_len + 1];
+      memset(line, 0, line_len);
+      int k = 0;
+      for (k = 0; k < line_len; ++k) {
+        line[k] = content[idx + k];
+      }
+      int line_start = -1;
+      for (k = 0; k < line_len; ++k) {
+        if (line[k] == '=') {
+          line_start = k + 1;
+          break;
+        }
+      }
+      if (line_start >= 0) {
+        k = line_start;
+        while (1) {
+          if ((k == line_len || line[k] == ':')) {
+            if (k == line_len) {
+              if (k > line_start) {
+                struct node * nn = malloc(sizeof(struct node));
+                nn->next = head.next;
+                nn->str = malloc(k - line_start + 1);
+                memset(nn->str, 0, k - line_start + 1);
+                int l = 0;
+                for (l = 0; l < k - line_start; ++l) {
+                  nn->str[l] = line[line_start + l];
+                }
+                head.next = nn;
+                line_start = k = k + 1;
+              }
+              break;
+            }
+            else {
+              if (k > line_start) {
+                struct node * nn = malloc(sizeof(struct node));
+                nn->next = head.next;
+                nn->str = malloc(k - line_start + 1);
+                memset(nn->str, 0, k - line_start + 1);
+                int l = 0;
+                for (l = 0; l < k - line_start; ++l) {
+                  nn->str[l] = line[line_start + l];
+                }
+                head.next = nn;
+              }
+              ++k;
+              line_start = k;
+            }
+          }
+          else {
+            ++k;
+          }
+        }
+      }
+      idx = j + 1;
+    }
+    else {
+      ++idx;
+    }
+  }
+  // struct node * cur = head.next;
+  // while (cur) {
+  //   printf(1, "%s\n", cur->str);
+  //   cur = cur->next;
+  // }
+}
+
 int
 main(int argc, char ** argv)
 {
+  init_profile();
   static char buf[100];
   int fd;
 
