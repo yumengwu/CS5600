@@ -12,11 +12,13 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "bitmap.h"
+#include "inode.h"
 #include "pages.h"
 #include "util.h"
 
-const int PAGE_COUNT = 256;
-const int NUFS_SIZE  = 4096 * 256; // 1MB
+const int PAGE_COUNT = BLOCK_COUNT;
+const int NUFS_SIZE  = 4096 * BLOCK_COUNT; // 1MB
 
 static int   pages_fd   = -1;
 static void* pages_base =  0;
@@ -41,7 +43,11 @@ pages_init(const char* path, int create)
 
     // mark inode 0 as taken
     char* pbase = (char*) pages_base;
-    pbase[0] = 1;
+    // pbase[0] = 1;
+
+    // mark block 0, 1
+    bitmap_put(pbase, 0, 1);
+    bitmap_put(pbase, 1, 1);
 }
 
 void

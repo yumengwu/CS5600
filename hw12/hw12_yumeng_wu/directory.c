@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "directory.h"
 #include "pages.h"
@@ -22,11 +23,12 @@
 void
 directory_init()
 {
-    inode* rn = get_inode(1);
+    inode* rn = get_inode(0);
 
     if (rn->mode == 0) {
         rn->size = 0;
         rn->mode = 040755;
+        rn->blocks[0] = 2;
     }
 }
 
@@ -55,7 +57,7 @@ tree_lookup(const char* path)
     assert(path[0] == '/');
 
     if (streq(path, "/")) {
-        return 1;
+        return 0;
     }
 
     return directory_lookup(path + 1);
