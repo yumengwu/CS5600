@@ -20,7 +20,7 @@
 int
 nufs_access(const char *path, int mask)
 {
-    int rv = 0;
+    int rv = storage_stat(path, NULL) >= 0;
     printf("access(%s, %04o) -> %d\n", path, mask, rv);
     return rv;
 }
@@ -45,12 +45,14 @@ nufs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     char item_path[128];
     int rv;
 
+    printf("readdir(%s)\n", path);
+
     rv = storage_stat(path, &st);
     assert(rv == 0);
 
     filler(buf, ".", &st, 0);
 
-    slist* items = storage_list("/");
+    slist* items = storage_list(path);
     for (slist* xs = items; xs != 0; xs = xs->next) {
         printf("+ looking at path: '%s'\n", xs->data);
         item_path[0] = '/';

@@ -35,8 +35,6 @@ alloc_inode()
         if (bitmap_get(inode_bm, i) == 0) {
             inode* node = get_inode(i);
             memset(node, 0, sizeof(inode));
-            node->mode = 010644;
-            node->count = 1;
             // alloc one block
             for (int j = 2; j < BLOCK_COUNT; ++j) {
                 if (bitmap_get(block_bm, j) == 0) {
@@ -48,6 +46,8 @@ alloc_inode()
             if (node->blocks[0] == 0) {
                 return -1;
             }
+            node->mode = 010644;
+            node->count = 1;
             bitmap_put(inode_bm, i, 1);
             printf("+ alloc_inode() -> %d\n", i);
             return i;
@@ -61,12 +61,32 @@ void
 free_inode(int inum)
 {
     printf("+ free_inode(%d)\n", inum);
-    char* block_bm = pages_get_page(0);
-    char* inode_bm = block_bm + INODE_TABLE_OFFSET;
+    uint8_t* block_bm = pages_get_page(0);
+    uint8_t* inode_bm = block_bm + INODE_TABLE_OFFSET;
 
     inode* node = get_inode(inum);
 
-    // first, free indirect 
+    // first, free indirect pointer
+    // it is safe to assume that only file have indirect pointer
+    if (node->size > 4096 * 3) {
+        uint16_t* page = pages_get_page(node->blocks[3]);
+        int indirect_cnt = (node->size - 4096 * 3) / 4096 + 1;
+        for (int i = 0; i < indirect_cnt; ++i) {
+            if (page[i] < BLOCK_COUNT) {
+                bitmap_put(block_bm, page[i], 0);
+            }
+        }
+        node->size = 4096 * 3;
+    }
+
+    // second, free direct pointer
+    if (node->size > 4096 * 2) bitmap_put(block_bm, node->blocks[2], 0);
+    if (node->size > 4096) bitmap_put(block_bm, node->blocks[1], 1);
+    bitmap_put(block_bm, node->blocks[0], 0);
+
+    // free inode
+    bitmap_put(inode_bm, inum, 0);
+
     memset(node, 0, sizeof(inode));
 }
 

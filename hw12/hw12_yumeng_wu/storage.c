@@ -43,11 +43,13 @@ storage_stat(const char* path, struct stat* st)
     printf("+ storage_stat(%s); inode %d\n", path, inum);
     print_inode(node);
 
-    memset(st, 0, sizeof(struct stat));
-    st->st_uid   = getuid();
-    st->st_mode  = node->mode;
-    st->st_size  = node->size;
-    st->st_nlink = 1;
+    if (st) {
+        memset(st, 0, sizeof(struct stat));
+        st->st_uid   = getuid();
+        st->st_mode  = node->mode;
+        st->st_size  = node->size;
+        st->st_nlink = 1;
+    }
     return 0;
 }
 
@@ -121,7 +123,7 @@ storage_mknod(const char* path, int mode)
 
     const char* name = path + 1;
 
-    if (directory_lookup(name) != -ENOENT) {
+    if (directory_lookup(NULL, name) != -ENOENT) {
         printf("mknod fail: already exist\n");
         return -EEXIST;
     }
@@ -133,7 +135,7 @@ storage_mknod(const char* path, int mode)
 
     printf("+ mknod create %s [%04o] - #%d\n", path, mode, inum);
 
-    return directory_put(name, inum);
+    return directory_put(NULL, name, inum);
 }
 
 slist*
@@ -146,7 +148,7 @@ int
 storage_unlink(const char* path)
 {
     const char* name = path + 1;
-    return directory_delete(name);
+    return directory_delete(NULL, name);
 }
 
 int
@@ -158,7 +160,7 @@ storage_link(const char* from, const char* to)
 int
 storage_rename(const char* from, const char* to)
 {
-    int inum = directory_lookup(from + 1);
+    int inum = directory_lookup(NULL, from + 1);
     if (inum < 0) {
         printf("mknod fail");
         return inum;

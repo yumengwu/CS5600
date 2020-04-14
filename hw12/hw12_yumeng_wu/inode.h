@@ -11,10 +11,10 @@ typedef struct inode {
     // int mode; // permission & type; zero for unused
     // int size; // bytes
     // // inode #x always uses data page #x
-    uint16_t mode;      // permission & type; zero for unused
-    uint16_t count;     // reference count
+    uint32_t mode;      // permission & type; zero for unused
+    uint32_t count;     // reference count
     int size;           // file size, bytes
-    uint8_t blocks[4];  // 0~2 direct pointers, 3 indirect pointer
+    uint16_t blocks[4];  // idx 0~2 for direct pointers, 3 is indirect pointer
     uint32_t time;      // last access time
     uint32_t ctime;     // create time
 } inode;
