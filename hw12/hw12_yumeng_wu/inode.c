@@ -94,8 +94,12 @@ resize_inode(int inum, int size)
     // alloc blocks
     else if (oldblocks < newblocks) {
         int diff = newblocks - oldblocks + (newblocks > 3 && oldblocks <= 3 ? 1 : 0);
+        int search_start = -1;
         for (int i = 0; i < BLOCK_COUNT; ++i) {
             if (bitmap_get(block_bm, i) == 0) {
+                if (search_start < 0) {
+                    search_start = i;
+                }
                 if (--diff == 0) {
                     break;
                 }
@@ -105,29 +109,32 @@ resize_inode(int inum, int size)
             return -1;
         }
         if (newblocks > 3 && oldblocks <= 3) {
-            for (int i = 0; i < BLOCK_COUNT; ++i) {
+            for (int i = search_start; i < BLOCK_COUNT; ++i) {
                 if (bitmap_get(block_bm, i) == 0) {
                     node->blocks[3] = i;
                     bitmap_put(block_bm, i, 1);
+                    search_start = i;
                     break;
                 }
             }
         }
         for (int i = oldblocks; i < 3 && i < newblocks; ++i) {
-            for (int j = 0; j < BLOCK_COUNT; ++j) {
+            for (int j = search_start; j < BLOCK_COUNT; ++j) {
                 if (bitmap_get(block_bm, j) == 0) {
                     node->blocks[i] = j;
                     bitmap_put(block_bm, j, 1);
+                    search_start = j;
                     break;
                 }
             }
         }
         uint16_t* page = pages_get_page(node->blocks[3]);
         for (int i = oldblocks > 3 ? oldblocks : 3; i < newblocks; ++i) {
-            for (int j = 0; j < BLOCK_COUNT; ++j) {
+            for (int j = search_start; j < BLOCK_COUNT; ++j) {
                 if (bitmap_get(block_bm, j) == 0) {
                     page[i - 3] = j;
                     bitmap_put(block_bm, j, 1);
+                    search_start = j;
                     break;
                 }
             }

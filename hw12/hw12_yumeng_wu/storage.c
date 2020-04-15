@@ -28,19 +28,23 @@ storage_init(const char* path, int create)
     pages_init(path, create);
     if (create) {
         directory_init();
-        bitmap_print(pages_get_page(0), 256);
-        printf("create file\n");
-        storage_mknod("/aa.txt", 010755);
-        bitmap_print(pages_get_page(0), 256);
-        printf("4096 * 2\n");
-        storage_truncate("/aa.txt", 4096 * 2);
-        bitmap_print(pages_get_page(0), 256);
-        printf("4096 * 10\n");
-        storage_truncate("/aa.txt", 4096 * 10);
-        bitmap_print(pages_get_page(0), 256);
-        printf("100\n");
-        storage_truncate("/aa.txt", 100);
-        bitmap_print(pages_get_page(0), 256);
+        // bitmap_print(pages_get_page(0), 256);
+        // printf("aa create file\n");
+        // storage_mknod("/aa.txt", 0100644);
+        // printf("bb create file\n");
+        // storage_mknod("/bb.txt", 0100644);
+        // bitmap_print(pages_get_page(0), 256);
+        // printf("aa write\n");
+        // char temp[4096 * 4 + 1];
+        // memset(temp, 0, 4096 * 4 + 1);
+        // memset(temp, 'a', 4096 * 4);
+        // storage_write("/aa.txt", temp, strlen(temp), 0);
+        // bitmap_print(pages_get_page(0), 256);
+        // char buf[4096 * 11];
+        // memset(buf, 0, 4096 * 11);
+        // printf("aa read\n");
+        // storage_read("/aa.txt", buf, 4096 * 4, 0);
+        // printf("after read: %d\n", streq(temp, buf));
     }
 }
 
@@ -86,11 +90,58 @@ storage_read(const char* path, char* buf, size_t size, off_t offset)
         size = node->size - offset;
     }
 
-    uint8_t* data = pages_get_page(inum);
-    printf(" + reading from page: %d\n", inum);
-    memcpy(buf, data + offset, size);
+    // read data
+    // uint8_t* data = pages_get_page(inum);
+    // printf(" + reading from page: %d\n", inum);
+    int block_num = node->size / 4096 + (node->size && node->size % 4096 == 0 ? 0 : 1);
+    int block_start = offset / 4096 + 1;
+    offset %= 4096;
+    int remain_bytes = size;
+    int idx = 0;
 
-    return size;
+    // read direct pointers
+    for (int i = block_start; i <= 3 && remain_bytes; ++i) {
+        printf(" + reading from page: %d\n", node->blocks[i - 1]);
+        uint8_t* page = pages_get_page(node->blocks[i - 1]);
+        int read_bytes = 4096 - offset;
+        if (read_bytes > remain_bytes) {
+            read_bytes = remain_bytes;
+        }
+        memcpy(buf + idx, page + offset, read_bytes);
+        idx += read_bytes;
+        remain_bytes -= read_bytes;
+        offset = 0;
+        printf(" + reading %d bytes, remain %d bytes\n", read_bytes, remain_bytes);
+    }
+
+    // read indirect pointers
+    if (remain_bytes) {
+        block_start -= 4;
+        printf("block start %d\n", block_start);
+        printf("+ read indirect pointers at block: %d, remain %d bytes\n", node->blocks[3], remain_bytes);
+        uint16_t* indir_table = pages_get_page(node->blocks[3]);
+        while (block_start > 0) {
+            ++indir_table;
+            --block_start;
+        }
+        while (remain_bytes) {
+            int read_bytes = 4096 - offset;
+            if (read_bytes > remain_bytes) {
+                read_bytes = remain_bytes;
+            }
+            printf(" + reading from page: %d\n", *indir_table);
+            memcpy(buf + idx, pages_get_page(*indir_table) + offset, read_bytes);
+            idx += read_bytes;
+            remain_bytes -= read_bytes;
+            ++indir_table;
+            offset = 0;
+            printf(" + reading %d bytes, remain %d bytes\n", read_bytes, remain_bytes);
+        }
+    }
+
+    // memcpy(buf, data + offset, size);
+
+    return idx;
 }
 
 int
@@ -106,12 +157,57 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset)
         return inum;
     }
 
-    inode* node = get_inode(inum);
-    uint8_t* data = pages_get_page(inum);
-    printf("+ writing to page: %d\n", inum);
-    memcpy(data + offset, buf, size);
+    printf("+ storage_write(%s); inode %d\n", path, inum);
 
-    return size;
+    inode* node = get_inode(inum);
+    // uint8_t* data = pages_get_page(inum);
+    // printf("+ writing to page: %d\n", inum);
+    // memcpy(data + offset, buf, size);
+    int block_start = offset / 4096 + 1;
+    int remain_bytes = size;
+    int idx = 0;
+    offset %= 4096;
+
+    // write direct pointers
+    for (int i = block_start; i <= 3 && remain_bytes; ++i) {
+        printf(" + writing page %d\n", node->blocks[i - 1]);
+        uint8_t* page = pages_get_page(node->blocks[i - 1]);
+        int write_bytes = 4096 - offset;
+        if (write_bytes > remain_bytes) {
+            write_bytes = remain_bytes;
+        }
+        memcpy(page + offset, buf + idx, write_bytes);
+        idx += write_bytes;
+        remain_bytes -= write_bytes;
+        offset = 0;
+        printf(" + writing %d bytes, remain %d bytes\n", write_bytes, remain_bytes);
+    }
+
+    // write indirect pointers
+    if (remain_bytes) {
+        printf("+ write indirect pointers at block: %d, remain %d bytes\n", node->blocks[3], remain_bytes);
+        uint16_t* indir_table = pages_get_page(node->blocks[3]);
+        block_start -= 4;
+        while (block_start) {
+            --block_start;
+            ++indir_table;
+        }
+        while (remain_bytes) {
+            int write_bytes = 4096 - offset;
+            if (write_bytes > remain_bytes) {
+                write_bytes = remain_bytes;
+            }
+            printf(" + writing from page: %d\n", *indir_table);
+            memcpy(pages_get_page(*indir_table) + offset, buf + idx, write_bytes);
+            idx += write_bytes;
+            remain_bytes -= write_bytes;
+            ++indir_table;
+            offset = 0;
+            printf(" + writing %d bytes, remain %d bytes\n", write_bytes, remain_bytes);
+        }
+    }
+
+    return idx;
 }
 
 int
@@ -155,7 +251,16 @@ storage_mknod(const char* path, int mode)
 
     printf("+ mknod create %s [%04o] - #%d\n", path, mode, inum);
     if (!xs->next) {
-        int res = directory_put(get_inode(0), name, inum);
+        if (mode & 0040000) {
+            printf(" + mknode, init dir. cur: %d, parent: %d\n", inum, 0);
+            uint8_t* page = pages_get_page(node->blocks[0]);
+            dirent* dirs = (dirent*) page;
+            strcpy(dirs[0].name, ".");
+            dirs[0].inum = inum;
+            strcpy(dirs[1].name, "..");
+            dirs[1].inum = 0;
+        }
+        int res = directory_put(get_inode(0), xs->data, inum);
         s_free(xs);
         return res;
     }
@@ -169,6 +274,17 @@ storage_mknod(const char* path, int mode)
         s_free(ys);
         s_free(xs);
         return -ENOENT;
+    }
+
+    // if this is a dir, init . and ..
+    if (mode & 0040000) {
+        printf(" + mknode, init dir. cur: %d, parent: %d\n", inum, parent_inode);
+        uint8_t* page = pages_get_page(node->blocks[0]);
+        dirent* dirs = (dirent*) page;
+        strcpy(dirs[0].name, ".");
+        dirs[0].inum = inum;
+        strcpy(dirs[1].name, "..");
+        dirs[1].inum = parent_inode;
     }
 
     int res = directory_put(get_inode(parent_inode), xs->data, inum);

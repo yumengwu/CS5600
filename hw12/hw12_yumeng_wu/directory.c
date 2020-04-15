@@ -110,7 +110,7 @@ directory_put(inode* dd, const char* name, int inum)
     int idx = -1;
     // find a empty dirent
     for (int i = 0; i < 4096 / sizeof(dirent); ++i) {
-        if (strlen(dirs[i].name)) {
+        if (strlen(dirs[i].name) == 0) {
             idx = i;
             break;
         }
