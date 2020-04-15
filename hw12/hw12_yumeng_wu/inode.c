@@ -57,6 +57,86 @@ alloc_inode()
     return -1;
 }
 
+int
+resize_inode(int inum, int size)
+{
+    printf("+ grow inode(%d) -> %d\n", inum, size);
+    char* block_bm = pages_get_page(0);
+    inode* node = get_inode(inum);
+
+    // calculate blocks we have and the target we want
+    int oldblocks = node->size / 4096 + (node->size && node->size % 4096 == 0 ? 0 : 1);
+    int newblocks = size / 4096 + (size && size % 4096 == 0 ? 0 : 1);
+
+    printf("old: %d, new: %d\n", oldblocks, newblocks);
+    
+    // release blocks
+    if (oldblocks > newblocks) {
+        if (newblocks > 3) {
+            uint16_t* page = pages_get_page(node->blocks[3]);
+            for (int i = newblocks + 1; i <= oldblocks; ++i) {
+                bitmap_put(block_bm, page[i - 4], 0);
+            }
+        }
+        else {
+            uint16_t* page = pages_get_page(node->blocks[3]);
+            for (int i = 0; i <= oldblocks - 4; ++i) {
+                bitmap_put(block_bm, page[i], 0);
+            }
+            if (oldblocks > 3 && newblocks <= 3) {
+                bitmap_put(block_bm, node->blocks[3], 0);
+            }
+            for (int i = newblocks; i < oldblocks && i < 3; ++i) {
+                bitmap_put(block_bm, node->blocks[i], 0);
+            }
+        }
+    }
+    // alloc blocks
+    else if (oldblocks < newblocks) {
+        int diff = newblocks - oldblocks + (newblocks > 3 && oldblocks <= 3 ? 1 : 0);
+        for (int i = 0; i < BLOCK_COUNT; ++i) {
+            if (bitmap_get(block_bm, i) == 0) {
+                if (--diff == 0) {
+                    break;
+                }
+            }
+        }
+        if (diff) {
+            return -1;
+        }
+        if (newblocks > 3 && oldblocks <= 3) {
+            for (int i = 0; i < BLOCK_COUNT; ++i) {
+                if (bitmap_get(block_bm, i) == 0) {
+                    node->blocks[3] = i;
+                    bitmap_put(block_bm, i, 1);
+                    break;
+                }
+            }
+        }
+        for (int i = oldblocks; i < 3 && i < newblocks; ++i) {
+            for (int j = 0; j < BLOCK_COUNT; ++j) {
+                if (bitmap_get(block_bm, j) == 0) {
+                    node->blocks[i] = j;
+                    bitmap_put(block_bm, j, 1);
+                    break;
+                }
+            }
+        }
+        uint16_t* page = pages_get_page(node->blocks[3]);
+        for (int i = oldblocks > 3 ? oldblocks : 3; i < newblocks; ++i) {
+            for (int j = 0; j < BLOCK_COUNT; ++j) {
+                if (bitmap_get(block_bm, j) == 0) {
+                    page[i - 3] = j;
+                    bitmap_put(block_bm, j, 1);
+                    break;
+                }
+            }
+        }
+    }
+    node->size = size;
+    return 0;
+}
+
 void
 free_inode(int inum)
 {

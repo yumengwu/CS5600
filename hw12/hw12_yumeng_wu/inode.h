@@ -22,6 +22,7 @@ typedef struct inode {
 void print_inode(inode* node);
 inode* get_inode(int inum);
 int alloc_inode();
+int resize_inode(int inum, int size);
 void free_inode();
 int inode_get_pnum(inode* node, int fpn);
 

@@ -3,6 +3,7 @@
         "types.h": "c",
         "cstdlib": "c",
         "random": "c",
-        "cstddef": "c"
+        "cstddef": "c",
+        "slist.h": "c"
     }
 }

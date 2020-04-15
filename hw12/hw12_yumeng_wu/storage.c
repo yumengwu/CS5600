@@ -14,6 +14,7 @@
 #include <stdint.h>
 
 #include "storage.h"
+#include "bitmap.h"
 #include "slist.h"
 #include "util.h"
 #include "pages.h"
@@ -27,6 +28,19 @@ storage_init(const char* path, int create)
     pages_init(path, create);
     if (create) {
         directory_init();
+        bitmap_print(pages_get_page(0), 256);
+        printf("create file\n");
+        storage_mknod("/aa.txt", 010755);
+        bitmap_print(pages_get_page(0), 256);
+        printf("4096 * 2\n");
+        storage_truncate("/aa.txt", 4096 * 2);
+        bitmap_print(pages_get_page(0), 256);
+        printf("4096 * 10\n");
+        storage_truncate("/aa.txt", 4096 * 10);
+        bitmap_print(pages_get_page(0), 256);
+        printf("100\n");
+        storage_truncate("/aa.txt", 100);
+        bitmap_print(pages_get_page(0), 256);
     }
 }
 
@@ -103,14 +117,15 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset)
 int
 storage_truncate(const char *path, off_t size)
 {
+    printf("truncate %s -> %ld bytes\n", path, size);
     int inum = tree_lookup(path);
     if (inum < 0) {
         return inum;
     }
 
-    inode* node = get_inode(inum);
-    node->size = size;
-    return 0;
+    // inode* node = get_inode(inum);
+    // node->size = size;
+    return resize_inode(inum, size);
 }
 
 int
@@ -123,25 +138,54 @@ storage_mknod(const char* path, int mode)
 
     const char* name = path + 1;
 
-    if (directory_lookup(NULL, name) != -ENOENT) {
+    slist* xs = s_split(name, '/');
+
+    if (directory_lookup(get_inode(0), xs) != -ENOENT) {
         printf("mknod fail: already exist\n");
         return -EEXIST;
     }
 
     int    inum = alloc_inode();
+    if (inum < 0) {
+        return -ENOSPC;
+    }
     inode* node = get_inode(inum);
     node->mode = mode;
     node->size = 0;
 
     printf("+ mknod create %s [%04o] - #%d\n", path, mode, inum);
+    if (!xs->next) {
+        int res = directory_put(get_inode(0), name, inum);
+        s_free(xs);
+        return res;
+    }
+    xs = s_rev_free(xs);
+    slist* ys = xs->next;
+    xs->next = 0;
+    ys = s_rev_free(ys);
 
-    return directory_put(NULL, name, inum);
+    int parent_inode = directory_lookup(get_inode(0), ys);
+    if (parent_inode < 0) {
+        s_free(ys);
+        s_free(xs);
+        return -ENOENT;
+    }
+
+    int res = directory_put(get_inode(parent_inode), xs->data, inum);
+    s_free(ys);
+    s_free(xs);
+
+    return res;
 }
 
 slist*
 storage_list(const char* path)
 {
-    return directory_list(path);
+    int inum = tree_lookup(path);
+    if (inum < 0) {
+        return 0;
+    }
+    return directory_list(get_inode(inum));
 }
 
 int

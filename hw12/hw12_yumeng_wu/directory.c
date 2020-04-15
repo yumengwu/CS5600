@@ -62,7 +62,7 @@ directory_lookup(inode* dd, slist* path_list)
 {
     // if no such inode
     if (!dd) {
-        return -1;
+        return -ENOENT;
     }
     // if this is not a dir
     if (dd->mode & 010000) {
@@ -73,7 +73,7 @@ directory_lookup(inode* dd, slist* path_list)
     for (int ii = 0; ii < 4096 / sizeof(dirent); ++ii) {
         char* ent = dirs[ii].name;
         if (streq(ent, path_list->data)) {
-            return path_list->next ? directory_lookup(get_inode(dirs[ii].inum), path_list->next) : ii;
+            return path_list->next ? directory_lookup(get_inode(dirs[ii].inum), path_list->next) : dirs[ii].inum;
         }
     }
     return -ENOENT;
