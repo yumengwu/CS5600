@@ -35,7 +35,7 @@ directory_init()
     if (rn->mode == 0) {
         rn->size = 0;
         rn->mode = 040755;
-        rn->count = 1;
+        rn->ref = -1;
         rn->blocks[0] = 2;
         uint8_t* page = pages_get_page(2);
         dirent* dirs = (dirent*) page;
@@ -65,7 +65,7 @@ directory_lookup(inode* dd, slist* path_list)
         return -ENOENT;
     }
     // if this is not a dir
-    if (dd->mode & 010000) {
+    if (dd->mode & 0100000) {
         return -1;
     }
     uint8_t* page = pages_get_page(dd->blocks[0]);
@@ -131,12 +131,14 @@ directory_put(inode* dd, const char* name, int inum)
 }
 
 int
-directory_delete(inode* dd, const char* name)
+directory_delete(int inum, const char* name)
 {
     printf(" + directory_delete(%s)\n", name);
     if (!name || streq(name, ".") || streq(name, "..")) {
         return -1;
     }
+    
+    inode* dd = get_inode(inum);
 
     uint8_t* page = pages_get_page(dd->blocks[0]);
     dirent* dirs = (dirent*) page;
@@ -155,16 +157,32 @@ directory_delete(inode* dd, const char* name)
 
     // get inode to delete
     inode* node = get_inode(dirs[idx].inum);
+
+    if (node->ref >= 0) {
+        hardlink_map_remove_dir(node->ref, inum);
+        if (hardlink_map_get_count(node->ref) > 0) {
+            memset(&dirs[idx], 0, sizeof(dirent));
+        }
+        
+        if (hardlink_map_entry_isempty(node->ref)) {
+            node->ref = -1;
+        }
+    }
+    if (node->ref >= 0) {
+        return 0;
+    }
     // if it is a file
-    if (node->mode & 010000) {
+    if (node->mode & 0100000) {
+        printf("  delete file with inode: %d\n", dirs[idx].inum);
         free_inode(dirs[idx].inum);
     }
     else {
-        uint8_t* node_page = pages_get_page(node->blocks[0]);
+        printf("  delete dir %s with inode: %d\n", dirs[idx].name, dirs[idx].inum);
+        uint8_t* node_page = pages_get_page(get_inode(dirs[idx].inum)->blocks[0]);
         dirent* node_dirs = (dirent*) node_dirs;
         for (int i = 0; i < dir_per_page; ++i) {
-            if (!(streq(node_dirs[i].name, ".") || streq(node_dirs[i].name, ".."))) {
-                directory_delete(node, node_dirs[i].name);
+            if (!(streq(node_dirs[i].name, ".") || streq(node_dirs[i].name, "..") || strlen(node_dirs[i].name) == 0)) {
+                directory_delete(dirs[idx].inum, node_dirs[i].name);
             }
         }
         free_inode(dirs[idx].inum);

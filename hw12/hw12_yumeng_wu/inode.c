@@ -46,8 +46,8 @@ alloc_inode()
             if (node->blocks[0] == 0) {
                 return -1;
             }
-            node->mode = 010644;
-            node->count = 1;
+            node->mode = 0100644;
+            node->ref = -1;
             bitmap_put(inode_bm, i, 1);
             printf("+ alloc_inode() -> %d\n", i);
             return i;
@@ -60,7 +60,7 @@ alloc_inode()
 int
 resize_inode(int inum, int size)
 {
-    printf("+ grow inode(%d) -> %d\n", inum, size);
+    printf("+ resize inode(%d) -> %d\n", inum, size);
     char* block_bm = pages_get_page(0);
     inode* node = get_inode(inum);
 

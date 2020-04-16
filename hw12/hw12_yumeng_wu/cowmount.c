@@ -111,7 +111,7 @@ int
 nufs_link(const char *from, const char *to)
 {
     printf("=============nufs_link\n");
-    int rv = -1;
+    int rv = storage_link(from, to);
     printf("link(%s => %s) -> %d\n", from, to, rv);
 	return rv;
 }
@@ -120,7 +120,7 @@ int
 nufs_rmdir(const char *path)
 {
     printf("=============nufs_rmdir\n");
-    int rv = -1;
+    int rv = storage_rmdir(path);
     printf("rmdir(%s) -> %d\n", path, rv);
     return rv;
 }

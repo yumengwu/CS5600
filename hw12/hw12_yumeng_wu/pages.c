@@ -48,6 +48,7 @@ pages_init(const char* path, int create)
     // mark block 0, 1
     bitmap_put(pbase, 0, 1);
     bitmap_put(pbase, 1, 1);
+    bitmap_put(pbase, BLOCK_COUNT - 1, 1);
 }
 
 void

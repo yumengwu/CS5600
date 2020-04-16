@@ -20,12 +20,14 @@
 #include "pages.h"
 #include "inode.h"
 #include "directory.h"
+#include "hardlink_map.h"
 
 void
 storage_init(const char* path, int create)
 {
     //printf("storage_init(%s, %d);\n", path, create);
     pages_init(path, create);
+    hardlink_map_init(pages_get_page(BLOCK_COUNT - 1), create);
     if (create) {
         directory_init();
         // bitmap_print(pages_get_page(0), 256);
@@ -305,29 +307,191 @@ storage_list(const char* path)
 }
 
 int
+storage_rmdir(const char* path)
+{
+    printf("+ storage_unlink (%s)\n", path);
+    int inum = tree_lookup(path);
+    if (inum < 0) {
+        return -ENOENT;
+    }
+
+    inode* dd = get_inode(inum);
+    if (!S_ISDIR(dd->mode)) {
+        return -ENOTDIR;
+    }
+    return storage_unlink(path);
+}
+
+int
 storage_unlink(const char* path)
 {
-    const char* name = path + 1;
-    return directory_delete(NULL, name);
+    printf("+ storage_unlink (%s)\n", path);
+    int inum = tree_lookup(path);
+    if (inum < 0) {
+        return -ENOENT;
+    }
+
+    inode* dd = get_inode(inum);
+    slist* xs = s_split(path + 1, '/');
+    xs = s_rev_free(xs);
+    slist* ys = xs->next;
+
+    int parent_inum = ys == 0 ? 0 : directory_lookup(get_inode(0), ys);
+    printf("node ref: %d %d\n", dd->ref);
+
+    // if (dd->ref >= 0) {
+    //     hardlink_map_remove_dir(dd->ref, parent_inum);
+    //     if (hardlink_map_get_count(dd->ref) > 0) {
+    //         dirent* dirs = pages_get_page(get_inode(parent_inum)->blocks[0]);
+    //         for (int i = 0; i < 4096 / sizeof(dirent); ++i) {
+    //             if (streq(dirs[i].name, xs->data)) {
+    //                 memset(&dirs[i], 0, sizeof(dirent));
+    //                 break;
+    //             }
+    //         }
+    //     }
+        
+    //     if (hardlink_map_entry_isempty(dd->ref)) {
+    //         dd->ref = -1;
+    //     }
+    // }
+    // if (dd->ref < 0) {
+    //     printf(" + delete file (%s) from parent (%s) with inum %d\n", xs->data, ys ? ys->data : "", parent_inum);
+    //     int res = directory_delete(get_inode(parent_inum), xs->data);
+    //     s_free(xs);
+    //     s_free(ys);
+    //     return res;
+    // }
+
+    int res = directory_delete(parent_inum, xs->data);
+
+    s_free(xs);
+    s_free(ys);
+    return res;
 }
 
 int
 storage_link(const char* from, const char* to)
 {
-    return -ENOENT;
+    printf("+ storage_link (from: %s, to: %s)\n", from, to);
+    int from_inum = tree_lookup(from);
+    if (from_inum < 0) {
+        return -ENOENT;
+    }
+    if (tree_lookup(to) != -ENOENT) {
+        return -EEXIST;
+    }
+
+    int entry_idx = hardlink_map_find_empty();
+    printf(" + hardlink map entry: %d\n", entry_idx);
+    if (entry_idx < 0) {
+        return -ENOSPC;
+    }
+
+    inode* from_node = get_inode(from_inum);
+    from_node->ref = entry_idx;
+
+    // add from parent node
+    slist* xs = s_split(from + 1, '/');
+    xs = s_rev_free(xs);
+    slist* ys = xs->next;
+    xs->next = 0;
+    ys = s_rev_free(ys);
+
+    if (ys == 0) {
+        hardlink_map_add_dir(entry_idx, 0);
+    }
+    else {
+        hardlink_map_add_dir(entry_idx, directory_lookup(get_inode(0), ys));
+    }
+    s_free(xs);
+    s_free(ys);
+
+    // add to dir node
+    xs = s_split(to + 1, '/');
+    xs = s_rev_free(xs);
+    ys = xs->next;
+    xs->next = 0;
+    ys = s_rev_free(ys);
+
+    int topn = 0;
+
+    if (ys == 0) {
+        hardlink_map_add_dir(entry_idx, 0);
+    }
+    else {
+        topn = directory_lookup(get_inode(0), ys);
+        hardlink_map_add_dir(entry_idx, topn);
+    }
+
+    directory_put(get_inode(topn), xs->data, from_inum);
+
+    s_free(xs);
+    s_free(ys);
+    return 0;
 }
 
 int
 storage_rename(const char* from, const char* to)
 {
-    int inum = directory_lookup(NULL, from + 1);
-    if (inum < 0) {
-        printf("mknod fail");
-        return inum;
-    }
+    // int inum = directory_lookup(NULL, from + 1);
+    // if (inum < 0) {
+    //     printf("mknod fail");
+    //     return inum;
+    // }
 
-    char* ent = directory_get(inum);
-    strlcpy(ent, to + 1, 16);
+    // char* ent = directory_get(inum);
+    // strlcpy(ent, to + 1, 16);
+
+    printf("+ storage_rename (from: %s, to: %s)\n", from, to);
+    // char* tmp1 = alloca(strlen(from) + 1);
+    // char* tmp2 = alloca(strlen(to)) + 1;
+    // strcpy(tmp1, from);
+    // strcpy(tmp2, to);
+
+    // int idx1 = -1, idx2 = -1;
+    // for (int i = strlen(tmp1) - 1; i >= 0; --i) {
+    //     if (tmp1[i] == '/') {
+    //         idx1 = i;
+    //         break;
+    //     }
+    // }
+    // for (int i = strlen(tmp2) - 1; i >= 0; --i) {
+    //     if (tmp2[i] == '/') {
+    //         idx2 = i;
+    //         break;
+    //     }
+    // }
+    // if (idx1 >= 0) {
+    //     tmp1[idx1] = 0;
+    // }
+    // if (idx2 >= 0) {
+    //     tmp2[idx2] = 0;
+    // }
+    // if (streq(tmp1, tmp2)) {
+    //     int parent_inum = tree_lookup(streq(tmp1, "") ? "/" : tmp1);
+    //     printf(" + parent inum: %d\n", parent_inum);
+    // }
+    struct stat st;
+    int res;
+    res = storage_stat(from, &st);
+    if (res < 0) {
+        return res;
+    }
+    char buf[st.st_size + 1];
+    res = storage_read(from, buf, st.st_size, 0);
+    if (res < 0) {
+        return res;
+    }
+    res = storage_unlink(from);
+    if (res < 0) {
+        return res;
+    }
+    res = storage_mknod(to, 0100644);
+    if (res < 0) {
+        return res;
+    }
+    res = storage_write(to, buf, st.st_size, 0);
 
     return 0;
 }

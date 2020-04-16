@@ -12,7 +12,7 @@ typedef struct inode {
     // int size; // bytes
     // // inode #x always uses data page #x
     uint32_t mode;      // permission & type; zero for unused
-    uint32_t count;     // reference count
+    int ref;     // reference map
     int size;           // file size, bytes
     uint16_t blocks[4];  // idx 0~2 for direct pointers, 3 is indirect pointer
     uint32_t time;      // last access time
