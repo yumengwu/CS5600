@@ -17,7 +17,17 @@ image_ls_tree(const char* base)
     slist* xs = storage_list(base);
     for (; xs; xs = xs->next) {
         char* path = path_join(base, xs->data);
+        slist* ys = s_split(path, '/');
+        ys = s_rev_free(ys);
         zs = s_cons(path, zs);
+        if (ys && !(streq(ys->data, ".") || streq(ys->data, ".."))) {
+            struct stat st;
+            storage_stat(path, &st);
+            if (S_ISDIR(st.st_mode)) {
+                zs = s_cat_free(zs, image_ls_tree(path));
+            }
+        }
+        s_free(ys);
     }
     return zs;
 }

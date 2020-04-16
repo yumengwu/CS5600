@@ -546,5 +546,15 @@ storage_readlink(const char * path_name, char * buf, size_t size)
     if (inum < 0) {
         return -ENOENT;
     }
+    inode* node = get_inode(inum);
+    if (S_ISLNK(node->mode)) {
+        return -1;
+    }
+    if (node->size > size) {
+        storage_read(path_name, buf, size, 0);
+    }
+    else {
+        storage_read(path_name, buf, node->size, 0);
+    }
     return 0;
 }
