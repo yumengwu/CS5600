@@ -69,6 +69,9 @@ storage_stat(const char* path, struct stat* st)
         st->st_mode  = node->mode;
         st->st_size  = node->size;
         st->st_nlink = 1;
+        st->st_atime = node->atime;
+        st->st_mtime = node->mtime;
+        st->st_blocks = node->size / 4096 + (node->size && node->size % 4096 == 0 ? 0 : 1);
     }
     return 0;
 }
@@ -81,6 +84,9 @@ storage_read(const char* path, char* buf, size_t size, off_t offset)
         return inum;
     }
     inode* node = get_inode(inum);
+    if (S_ISDIR(node->mode)) {
+        return -EISDIR;
+    }
     printf("+ storage_read(%s); inode %d\n", path, inum);
     print_inode(node);
 
@@ -142,6 +148,8 @@ storage_read(const char* path, char* buf, size_t size, off_t offset)
     }
 
     // memcpy(buf, data + offset, size);
+    time_t utime = time(0);
+    node->atime = utime;
 
     return idx;
 }
@@ -149,19 +157,22 @@ storage_read(const char* path, char* buf, size_t size, off_t offset)
 int
 storage_write(const char* path, const char* buf, size_t size, off_t offset)
 {
+    int inum = tree_lookup(path);
+    if (inum < 0) {
+        return -ENOENT;
+    }
+    inode* node = get_inode(inum);
+
+    if (S_ISDIR(node->mode)) {
+        return -EISDIR;
+    }
+
     int trv = storage_truncate(path, offset + size);
     if (trv < 0) {
         return trv;
     }
 
-    int inum = tree_lookup(path);
-    if (inum < 0) {
-        return inum;
-    }
-
     printf("+ storage_write(%s); inode %d\n", path, inum);
-
-    inode* node = get_inode(inum);
     // uint8_t* data = pages_get_page(inum);
     // printf("+ writing to page: %d\n", inum);
     // memcpy(data + offset, buf, size);
@@ -208,6 +219,8 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset)
             printf(" + writing %d bytes, remain %d bytes\n", write_bytes, remain_bytes);
         }
     }
+    time_t utime = time(0);
+    node->mtime = utime;
 
     return idx;
 }
@@ -337,8 +350,6 @@ storage_unlink(const char* path)
     slist* ys = xs->next;
 
     int parent_inum = ys == 0 ? 0 : directory_lookup(get_inode(0), ys);
-    printf("node ref: %d %d\n", dd->ref);
-
     // if (dd->ref >= 0) {
     //     hardlink_map_remove_dir(dd->ref, parent_inum);
     //     if (hardlink_map_get_count(dd->ref) > 0) {
@@ -444,34 +455,6 @@ storage_rename(const char* from, const char* to)
     // strlcpy(ent, to + 1, 16);
 
     printf("+ storage_rename (from: %s, to: %s)\n", from, to);
-    // char* tmp1 = alloca(strlen(from) + 1);
-    // char* tmp2 = alloca(strlen(to)) + 1;
-    // strcpy(tmp1, from);
-    // strcpy(tmp2, to);
-
-    // int idx1 = -1, idx2 = -1;
-    // for (int i = strlen(tmp1) - 1; i >= 0; --i) {
-    //     if (tmp1[i] == '/') {
-    //         idx1 = i;
-    //         break;
-    //     }
-    // }
-    // for (int i = strlen(tmp2) - 1; i >= 0; --i) {
-    //     if (tmp2[i] == '/') {
-    //         idx2 = i;
-    //         break;
-    //     }
-    // }
-    // if (idx1 >= 0) {
-    //     tmp1[idx1] = 0;
-    // }
-    // if (idx2 >= 0) {
-    //     tmp2[idx2] = 0;
-    // }
-    // if (streq(tmp1, tmp2)) {
-    //     int parent_inum = tree_lookup(streq(tmp1, "") ? "/" : tmp1);
-    //     printf(" + parent inum: %d\n", parent_inum);
-    // }
     struct stat st;
     int res;
     res = storage_stat(from, &st);
@@ -497,8 +480,71 @@ storage_rename(const char* from, const char* to)
 }
 
 int
+storage_chmod(const char *path, mode_t mode)
+{
+    printf("+ storage_chmod(%s, %04o)\n", path, mode);
+    int inum = tree_lookup(path);
+    if (inum < 0) {
+        return -ENOENT;
+    }
+    inode* node = get_inode(inum);
+    node->mode &= 0xffffffff ^ 0777;
+    node->mode |= mode;
+    time_t utime = time(0);
+    node->mtime = utime;
+    return 0;
+}
+
+int
 storage_set_time(const char* path, const struct timespec ts[2])
 {
     // Maybe we need space in a pnode for timestamps.
+    printf("+ storage_set_time(%s)\n", path);
+    int inum = tree_lookup(path);
+    if (inum < 0) {
+        return -ENOENT;
+    }
+
+    inode* node = get_inode(inum);
+    node->atime = ts[0].tv_sec;
+    node->mtime = ts[1].tv_sec;
+    return 0;
+}
+
+int
+storage_symlink(const char * target, const char * link_path)
+{
+    printf("+ storage_symlink(%s => %s)\n", target, link_path);
+    // check target
+    int target_inum = tree_lookup(target);
+    if (target_inum < 0) {
+        return -ENOENT;
+    }
+    inode* target_node = get_inode(target_inum);
+    if (!S_ISDIR(target_node->mode)) {
+        return -ENOTDIR;
+    }
+
+    // check link
+    if (tree_lookup(link_path) != ENOENT) {
+        return -EEXIST;
+    }
+
+    int res = storage_mknod(link_path, target_node->mode & 0777 | 0120000);
+    if (res < 0) {
+        return res;
+    }
+    res = storage_write(link_path, target, strlen(target), 0);
+    return res == strlen(target_node) ? 0 : res;
+}
+
+int
+storage_readlink(const char * path_name, char * buf, size_t size)
+{
+    printf("+ storage_readlink(%s)\n", path_name);
+    int inum = tree_lookup(path_name);
+    if (inum < 0) {
+        return -ENOENT;
+    }
     return 0;
 }

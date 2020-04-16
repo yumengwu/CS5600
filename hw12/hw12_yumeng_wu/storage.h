@@ -18,7 +18,10 @@ int    storage_unlink(const char* path);
 int    storage_rmdir(const char* path);
 int    storage_link(const char *from, const char *to);
 int    storage_rename(const char *from, const char *to);
+int    storage_chmod(const char *path, mode_t mode);
 int    storage_set_time(const char* path, const struct timespec ts[2]);
 slist* storage_list(const char* path);
+int    storage_symlink(const char * target, const char * link_path);
+int    storage_readlink(const char * path_name, char * buf, size_t size);
 
 #endif

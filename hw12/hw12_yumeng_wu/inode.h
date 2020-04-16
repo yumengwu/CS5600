@@ -1,7 +1,10 @@
 #ifndef INODE_H
 #define INODE_H
 
+#include <unistd.h>
 #include <stdint.h>
+#include <time.h>
+#include <errno.h>
 #include "pages.h"
 
 #define INODE_TABLE_OFFSET 32
@@ -11,12 +14,12 @@ typedef struct inode {
     // int mode; // permission & type; zero for unused
     // int size; // bytes
     // // inode #x always uses data page #x
-    uint32_t mode;      // permission & type; zero for unused
-    int ref;     // reference map
+    uint16_t mode;      // permission & type; zero for unused
+    short ref;          // reference map
     int size;           // file size, bytes
-    uint16_t blocks[4];  // idx 0~2 for direct pointers, 3 is indirect pointer
-    uint32_t time;      // last access time
-    uint32_t ctime;     // create time
+    uint8_t blocks[4];  // idx 0~2 for direct pointers, 3 is indirect pointer
+    time_t atime;       // last access time
+    time_t mtime;       // last modification time
 } inode;
 
 void print_inode(inode* node);

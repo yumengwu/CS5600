@@ -48,6 +48,9 @@ alloc_inode()
             }
             node->mode = 0100644;
             node->ref = -1;
+            time_t utime = time(0);
+            node->atime = utime;
+            node->mtime = utime;
             bitmap_put(inode_bm, i, 1);
             printf("+ alloc_inode() -> %d\n", i);
             return i;
@@ -106,7 +109,7 @@ resize_inode(int inum, int size)
             }
         }
         if (diff) {
-            return -1;
+            return -ENOSPC;
         }
         if (newblocks > 3 && oldblocks <= 3) {
             for (int i = search_start; i < BLOCK_COUNT; ++i) {
@@ -141,6 +144,8 @@ resize_inode(int inum, int size)
         }
     }
     node->size = size;
+    time_t utime = time(0);
+    node->mtime = utime;
     return 0;
 }
 
