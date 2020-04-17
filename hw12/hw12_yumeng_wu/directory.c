@@ -83,6 +83,7 @@ directory_lookup(inode* dd, slist* path_list)
 int
 tree_lookup(const char* path)
 {
+    printf("lookup %s\n", path);
     assert(path[0] == '/');
 
     if (streq(path, "/")) {

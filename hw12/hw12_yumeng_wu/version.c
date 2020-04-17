@@ -5,7 +5,7 @@ static cow_history_t* chbase;
 int
 cow_history_init(int create)
 {
-    printf("cow_history_init\n");
+    // printf("cow_history_init\n");
     uint8_t* page = pages_get_page(VERSION_BLOCK_NUM);
     if (create) {
         int num = 0;
@@ -111,7 +111,7 @@ cow_history_rollback(int ver)
             storage_write(chbase[cnt - 1].file1, temp, st.st_size, 0, 0);
         }
         else if (streq(chbase[cnt - 1].op, "mknod")) {
-            storage_unlink(chbase[cnt - 1].file2, 0);
+            storage_unlink(chbase[cnt - 1].file1, 0);
         }
         else if (streq(chbase[cnt - 1].op, "unlink")) {
             if (chbase[cnt - 1].file2[0] == '.') {
@@ -138,11 +138,12 @@ cow_history_rollback(int ver)
                 char temp[st.st_size];
                 storage_read(chbase[cnt - 1].file2, temp, st.st_size, 0);
                 storage_unlink(chbase[cnt - 1].file2, 0);
+                storage_mknod(chbase[cnt - 1].file1, 0644 | __S_IFREG, 0);
                 storage_write(chbase[cnt - 1].file1, temp, st.st_size, 0, 0);
             }
         }
         else if (streq(chbase[cnt - 1].op, "link")) {
-            storage_unlink(chbase[cnt - 1].file1, 0);
+            storage_unlink(chbase[cnt - 1].file2, 0);
         }
         else if (streq(chbase[cnt - 1].op, "rename")) {
             storage_rename(chbase[cnt - 1].file2, chbase[cnt - 1].file1, 0);

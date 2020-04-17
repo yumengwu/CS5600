@@ -7,8 +7,16 @@ cowmount.c:183:12: warning: format ‘%d’ expects argument of type ‘int’, 
      printf("=============nufs_write=============\n   path: %s, size: %d, off: %d\n", path, size, offset);
             ^
 cowmount.c:183:12: warning: format ‘%d’ expects argument of type ‘int’, but argument 4 has type ‘off_t {aka long int}’ [-Wformat=]
+storage.c: In function ‘storage_write’:
+storage.c:190:16: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘__off_t {aka long int}’ [-Wformat=]
+         printf("write %d bytes\n", st.st_size);
+                ^
+storage.c: In function ‘storage_truncate’:
+storage.c:275:16: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘__off_t {aka long int}’ [-Wformat=]
+         printf("truncate before: %d bytes\n", st.st_size);
+                ^
 storage.c: In function ‘storage_symlink’:
-storage.c:654:26: warning: passing argument 1 of ‘strlen’ from incompatible pointer type [-Wincompatible-pointer-types]
+storage.c:656:26: warning: passing argument 1 of ‘strlen’ from incompatible pointer type [-Wincompatible-pointer-types]
      return res == strlen(target_node) ? 0 : res;
                           ^
 In file included from storage.c:11:0:
@@ -16,9 +24,6 @@ In file included from storage.c:11:0:
  extern size_t strlen (const char *__s)
                ^
 hardlink_map.c: In function ‘hardlink_map_init’:
-hardlink_map.c:9:12: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘long unsigned int’ [-Wformat=]
-     printf("size of hardlink_entry: %d\n", sizeof(hardlink_entry));
-            ^
 hardlink_map.c:10:12: warning: assignment from incompatible pointer type [-Wincompatible-pointer-types]
      hmbase = ptr;
             ^

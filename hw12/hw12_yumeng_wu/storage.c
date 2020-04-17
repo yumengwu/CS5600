@@ -184,9 +184,10 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset, int 
         return -EISDIR;
     }
 
-    if (save && offset + size <= 4096) {
+    if (save && node->size <= 4096) {
         struct stat st;
         storage_stat(path, &st);
+        printf("write %d bytes\n", st.st_size);
         char temp[st.st_size + 1];
         memset(temp, 0, st.st_size + 1);
         storage_read(path, temp, st.st_size, 0);
@@ -195,7 +196,7 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset, int 
         strcpy(ch.op, "write");
         strncpy(ch.file1, path, 64);
         time_t utime = time(0);
-        sprintf(ch.file2, "/.%ld", utime);
+        sprintf(ch.file2, "/.%ldwrite", utime);
         storage_mknod(ch.file2, 0644 | __S_IFREG, 0);
         storage_write(ch.file2, temp, st.st_size, 0, 0);
         cow_history_add(&ch);
@@ -271,6 +272,7 @@ storage_truncate(const char *path, off_t size, int save)
     if (save) {
         struct stat st;
         storage_stat(path, &st);
+        printf("truncate before: %d bytes\n", st.st_size);
         char temp[st.st_size + 1];
         memset(temp, 0, st.st_size + 1);
         storage_read(path, temp, st.st_size, 0);
@@ -279,7 +281,7 @@ storage_truncate(const char *path, off_t size, int save)
         strcpy(ch.op, "truncate");
         strncpy(ch.file1, path, 64);
         time_t utime = time(0);
-        sprintf(ch.file2, "/.%ld", utime);
+        sprintf(ch.file2, "/.%ldtruncate", utime);
         storage_mknod(ch.file2, 0644 | __S_IFREG, 0);
         storage_write(ch.file2, temp, st.st_size, 0, 0);
         cow_history_add(&ch);
@@ -418,7 +420,7 @@ storage_unlink(const char* path, int save)
             char temp[dd->size + 1];
             memset(temp, 0, dd->size + 1);
             storage_read(path, temp, dd->size, 0);
-            sprintf(ch.file2, "/.%ld", utime);
+            sprintf(ch.file2, "/.%ldunlink", utime);
             storage_mknod(ch.file2, 0644 | __S_IFREG, 0);
             storage_write(ch.file2, temp, dd->size, 0, 0);
         }

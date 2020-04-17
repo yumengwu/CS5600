@@ -67,6 +67,7 @@ main(int argc, char* argv[])
 
     if (streq(cmd, "ls")) {
         slist* xs = image_ls_tree("/");
+        printf("List for /\n");
         for (slist* it = xs; it != 0; it = it->next) {
             printf("%s\n", it->data);
         }

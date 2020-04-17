@@ -5,8 +5,8 @@ static hardlink_entry* hmbase;
 void
 hardlink_map_init(uint8_t* ptr, int create)
 {
-    printf("hardlink_map_init, create: %d\n", create);
-    printf("size of hardlink_entry: %d\n", sizeof(hardlink_entry));
+    // printf("hardlink_map_init, create: %d\n", create);
+    // printf("size of hardlink_entry: %d\n", sizeof(hardlink_entry));
     hmbase = ptr;
     int num = 4096 / sizeof(hardlink_entry);
     if (create) {
