@@ -18,6 +18,7 @@
 #include "slist.h"
 #include "util.h"
 #include "inode.h"
+#include "hardlink_map.h"
 
 #define ENT_SIZE 16
 

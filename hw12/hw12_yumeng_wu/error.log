@@ -1,0 +1,24 @@
+version.c: In function ‘cow_history_init’:
+version.c:14:12: warning: assignment from incompatible pointer type [-Wincompatible-pointer-types]
+     chbase = page + 4;
+            ^
+cowmount.c: In function ‘nufs_write’:
+cowmount.c:183:12: warning: format ‘%d’ expects argument of type ‘int’, but argument 3 has type ‘size_t {aka long unsigned int}’ [-Wformat=]
+     printf("=============nufs_write=============\n   path: %s, size: %d, off: %d\n", path, size, offset);
+            ^
+cowmount.c:183:12: warning: format ‘%d’ expects argument of type ‘int’, but argument 4 has type ‘off_t {aka long int}’ [-Wformat=]
+storage.c: In function ‘storage_symlink’:
+storage.c:654:26: warning: passing argument 1 of ‘strlen’ from incompatible pointer type [-Wincompatible-pointer-types]
+     return res == strlen(target_node) ? 0 : res;
+                          ^
+In file included from storage.c:11:0:
+/usr/include/string.h:394:15: note: expected ‘const char *’ but argument is of type ‘inode * {aka struct inode *}’
+ extern size_t strlen (const char *__s)
+               ^
+hardlink_map.c: In function ‘hardlink_map_init’:
+hardlink_map.c:9:12: warning: format ‘%d’ expects argument of type ‘int’, but argument 2 has type ‘long unsigned int’ [-Wformat=]
+     printf("size of hardlink_entry: %d\n", sizeof(hardlink_entry));
+            ^
+hardlink_map.c:10:12: warning: assignment from incompatible pointer type [-Wincompatible-pointer-types]
+     hmbase = ptr;
+            ^

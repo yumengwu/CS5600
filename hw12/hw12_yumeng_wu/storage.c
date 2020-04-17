@@ -21,6 +21,7 @@
 #include "inode.h"
 #include "directory.h"
 #include "hardlink_map.h"
+#include "version.h"
 
 void
 storage_init(const char* path, int create)
@@ -28,6 +29,7 @@ storage_init(const char* path, int create)
     //printf("storage_init(%s, %d);\n", path, create);
     pages_init(path, create);
     hardlink_map_init(pages_get_page(BLOCK_COUNT - 1), create);
+    bitmap_put(pages_get_page(0), VERSION_BLOCK_NUM, 1);
     if (create) {
         directory_init();
         // bitmap_print(pages_get_page(0), 256);
@@ -48,6 +50,7 @@ storage_init(const char* path, int create)
         // storage_read("/aa.txt", buf, 4096 * 4, 0);
         // printf("after read: %d\n", streq(temp, buf));
     }
+    cow_history_init(create);
 }
 
 int
@@ -155,7 +158,21 @@ storage_read(const char* path, char* buf, size_t size, off_t offset)
 }
 
 int
-storage_write(const char* path, const char* buf, size_t size, off_t offset)
+__truncate(const char *path, off_t size)
+{
+    printf("truncate %s -> %ld bytes\n", path, size);
+    int inum = tree_lookup(path);
+    if (inum < 0) {
+        return inum;
+    }
+
+    // inode* node = get_inode(inum);
+    // node->size = size;
+    return resize_inode(inum, size);
+}
+
+int
+storage_write(const char* path, const char* buf, size_t size, off_t offset, int save)
 {
     int inum = tree_lookup(path);
     if (inum < 0) {
@@ -167,7 +184,24 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset)
         return -EISDIR;
     }
 
-    int trv = storage_truncate(path, offset + size);
+    if (save && offset + size <= 4096) {
+        struct stat st;
+        storage_stat(path, &st);
+        char temp[st.st_size + 1];
+        memset(temp, 0, st.st_size + 1);
+        storage_read(path, temp, st.st_size, 0);
+        cow_history_t ch;
+        memset(&ch, 0, sizeof(cow_history_t));
+        strcpy(ch.op, "write");
+        strncpy(ch.file1, path, 64);
+        time_t utime = time(0);
+        sprintf(ch.file2, "/.%ld", utime);
+        storage_mknod(ch.file2, 0644 | __S_IFREG, 0);
+        storage_write(ch.file2, temp, st.st_size, 0, 0);
+        cow_history_add(&ch);
+    }
+
+    int trv = __truncate(path, offset + size);
     if (trv < 0) {
         return trv;
     }
@@ -226,12 +260,29 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset)
 }
 
 int
-storage_truncate(const char *path, off_t size)
+storage_truncate(const char *path, off_t size, int save)
 {
     printf("truncate %s -> %ld bytes\n", path, size);
     int inum = tree_lookup(path);
     if (inum < 0) {
         return inum;
+    }
+
+    if (save) {
+        struct stat st;
+        storage_stat(path, &st);
+        char temp[st.st_size + 1];
+        memset(temp, 0, st.st_size + 1);
+        storage_read(path, temp, st.st_size, 0);
+        cow_history_t ch;
+        memset(&ch, 0, sizeof(cow_history_t));
+        strcpy(ch.op, "truncate");
+        strncpy(ch.file1, path, 64);
+        time_t utime = time(0);
+        sprintf(ch.file2, "/.%ld", utime);
+        storage_mknod(ch.file2, 0644 | __S_IFREG, 0);
+        storage_write(ch.file2, temp, st.st_size, 0, 0);
+        cow_history_add(&ch);
     }
 
     // inode* node = get_inode(inum);
@@ -240,7 +291,7 @@ storage_truncate(const char *path, off_t size)
 }
 
 int
-storage_mknod(const char* path, int mode)
+storage_mknod(const char* path, int mode, int save)
 {
     char* tmp1 = alloca(strlen(path));
     char* tmp2 = alloca(strlen(path));
@@ -263,6 +314,13 @@ storage_mknod(const char* path, int mode)
     inode* node = get_inode(inum);
     node->mode = mode;
     node->size = 0;
+    if (save) {
+        cow_history_t ch;
+        memset(&ch, 0, sizeof(cow_history_t));
+        strcpy(ch.op, "mknod");
+        strncpy(ch.file1, path, 64);
+        cow_history_add(&ch);
+    }
 
     printf("+ mknod create %s [%04o] - #%d\n", path, mode, inum);
     if (!xs->next) {
@@ -332,11 +390,11 @@ storage_rmdir(const char* path)
     if (!S_ISDIR(dd->mode)) {
         return -ENOTDIR;
     }
-    return storage_unlink(path);
+    return storage_unlink(path, 0);
 }
 
 int
-storage_unlink(const char* path)
+storage_unlink(const char* path, int save)
 {
     printf("+ storage_unlink (%s)\n", path);
     int inum = tree_lookup(path);
@@ -350,6 +408,26 @@ storage_unlink(const char* path)
     slist* ys = xs->next;
 
     int parent_inum = ys == 0 ? 0 : directory_lookup(get_inode(0), ys);
+    if (save) {
+        cow_history_t ch;
+        memset(&ch, 0, sizeof(cow_history_t));
+        strcpy(ch.op, "unlink");
+        strncpy(ch.file1, path, 64);
+        if (dd->ref < 0) {
+            time_t utime = time(0);
+            char temp[dd->size + 1];
+            memset(temp, 0, dd->size + 1);
+            storage_read(path, temp, dd->size, 0);
+            sprintf(ch.file2, "/.%ld", utime);
+            storage_mknod(ch.file2, 0644 | __S_IFREG, 0);
+            storage_write(ch.file2, temp, dd->size, 0, 0);
+        }
+        else {
+            strcpy(ch.file2, ".");
+            memcpy(ch.file2 + 1, &inum, 4);
+        }
+        cow_history_add(&ch);
+    }
     // if (dd->ref >= 0) {
     //     hardlink_map_remove_dir(dd->ref, parent_inum);
     //     if (hardlink_map_get_count(dd->ref) > 0) {
@@ -382,7 +460,7 @@ storage_unlink(const char* path)
 }
 
 int
-storage_link(const char* from, const char* to)
+storage_link(const char* from, const char* to, int save)
 {
     printf("+ storage_link (from: %s, to: %s)\n", from, to);
     int from_inum = tree_lookup(from);
@@ -397,6 +475,15 @@ storage_link(const char* from, const char* to)
     printf(" + hardlink map entry: %d\n", entry_idx);
     if (entry_idx < 0) {
         return -ENOSPC;
+    }
+
+    if (save) {
+        cow_history_t ch;
+        memset(&ch, 0, sizeof(cow_history_t));
+        strcpy(ch.op, "link");
+        strncpy(ch.file1, from, 64);
+        strncpy(ch.file2, to, 64);
+        cow_history_add(&ch);
     }
 
     inode* from_node = get_inode(from_inum);
@@ -443,7 +530,7 @@ storage_link(const char* from, const char* to)
 }
 
 int
-storage_rename(const char* from, const char* to)
+storage_rename(const char* from, const char* to, int save)
 {
     // int inum = directory_lookup(NULL, from + 1);
     // if (inum < 0) {
@@ -466,21 +553,30 @@ storage_rename(const char* from, const char* to)
     if (res < 0) {
         return res;
     }
-    res = storage_unlink(from);
+    res = storage_unlink(from, 0);
     if (res < 0) {
         return res;
     }
-    res = storage_mknod(to, 0100644);
+    res = storage_mknod(to, 0100644, 0);
     if (res < 0) {
         return res;
     }
-    res = storage_write(to, buf, st.st_size, 0);
+    res = storage_write(to, buf, st.st_size, 0, 0);
+
+    if (save) {
+        cow_history_t ch;
+        memset(&ch, 0, sizeof(cow_history_t));
+        strcpy(ch.op, "rename");
+        strncpy(ch.file1, from, 64);
+        strncpy(ch.file2, to, 64);
+        cow_history_add(&ch);
+    }
 
     return 0;
 }
 
 int
-storage_chmod(const char *path, mode_t mode)
+storage_chmod(const char *path, mode_t mode, int save)
 {
     printf("+ storage_chmod(%s, %04o)\n", path, mode);
     int inum = tree_lookup(path);
@@ -488,6 +584,15 @@ storage_chmod(const char *path, mode_t mode)
         return -ENOENT;
     }
     inode* node = get_inode(inum);
+    if (save) {
+        cow_history_t ch;
+        memset(&ch, 0, sizeof(cow_history_t));
+        strcpy(ch.op, "chmod");
+        strncpy(ch.file1, path, 64);
+        memcpy(ch.data1, &node->mode, 4);
+        memcpy(ch.data1 + 4, &mode, 4);
+        cow_history_add(&ch);
+    }
     node->mode &= 0xffffffff ^ 0777;
     node->mode |= mode;
     time_t utime = time(0);
@@ -496,7 +601,7 @@ storage_chmod(const char *path, mode_t mode)
 }
 
 int
-storage_set_time(const char* path, const struct timespec ts[2])
+storage_set_time(const char* path, const struct timespec ts[2], int save)
 {
     // Maybe we need space in a pnode for timestamps.
     printf("+ storage_set_time(%s)\n", path);
@@ -506,6 +611,17 @@ storage_set_time(const char* path, const struct timespec ts[2])
     }
 
     inode* node = get_inode(inum);
+    if (save) {
+        cow_history_t ch;
+        memset(&ch, 0, sizeof(cow_history_t));
+        strcpy(ch.op, "settime");
+        strncpy(ch.file1, path, 64);
+        memcpy(ch.data1, &node->atime, 8);
+        memcpy(ch.data1 + 8, &node->mtime, 8);
+        memcpy(ch.data1 + 16, &ts[0].tv_sec, 8);
+        memcpy(ch.data1 + 24, &ts[1].tv_sec, 8);
+        cow_history_add(&ch);
+    }
     node->atime = ts[0].tv_sec;
     node->mtime = ts[1].tv_sec;
     return 0;
@@ -530,11 +646,11 @@ storage_symlink(const char * target, const char * link_path)
         return -EEXIST;
     }
 
-    int res = storage_mknod(link_path, target_node->mode & 0777 | 0120000);
+    int res = storage_mknod(link_path, target_node->mode & 0777 | 0120000, 0);
     if (res < 0) {
         return res;
     }
-    res = storage_write(link_path, target, strlen(target), 0);
+    res = storage_write(link_path, target, strlen(target), 0, 0);
     return res == strlen(target_node) ? 0 : res;
 }
 

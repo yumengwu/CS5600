@@ -8,6 +8,7 @@
 #include "storage.h"
 #include "slist.h"
 #include "util.h"
+#include "version.h"
 
 slist*
 image_ls_tree(const char* base)
@@ -70,6 +71,21 @@ main(int argc, char* argv[])
             printf("%s\n", it->data);
         }
         s_free(xs);
+        return 0;
+    }
+
+    if (streq(cmd, "versions")) {
+        slist* xs = cow_history_getall();
+        for (slist* it = xs; it != 0; it = it->next) {
+            printf("%s\n", it->data);
+        }
+        s_free(xs);
+        return 0;
+    }
+
+    if (streq(cmd, "rollback") && argc == 4) {
+        int ver = atoi(argv[3]);
+        cow_history_rollback(ver);
         return 0;
     }
 
