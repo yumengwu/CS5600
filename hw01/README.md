@@ -54,16 +54,16 @@ The starter code for this assignment is distributed as a .tar.gz archive (a “g
 - he starter code is unpacked into a directory. You want to keep this directory and nested directory structure so as to not confuse the autograding scripts.
 - Once you’ve completed your work in the assignment directory, you can pack it up into a new tarball for submission with: <font color="#e83e8c">tar czvf [new-file].tar.gz [the-directory]</font>
 
-Example:
+Example:<br/>
 
-\$ tar xzvf hw01-starter.tar.gz
-... tarball is unpacked
-\$ cd hw01-starter
-\$ vim foo.c
-... modify the starter code
-\$ cd ..
-\$ tar czvf hw01-yourname.tar.gz hw01-starter
-... new tarball is created
+\$ tar xzvf hw01-starter.tar.gz<br/>
+... tarball is unpacked<br/>
+\$ cd hw01-starter<br/>
+\$ vim foo.c<br/>
+... modify the starter code<br/>
+\$ cd ..<br/>
+\$ tar czvf hw01-yourname.tar.gz hw01-starter<br/>
+... new tarball is created<br/>
 
 ### Task 1:
 - Create a C source file, “square.c”, containing a function called “square” that squares a long integer.

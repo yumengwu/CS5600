@@ -6,14 +6,14 @@ For this assignment you’ll be adding shared memory to xv6.
 
 To do this, you’ll add five functions to the userspace API of xv6:
 
-\# shared memory
-void* spalloc();
-void spfree(void* ptr);
+\# shared memory<br/>
+void* spalloc();<br/>
+void spfree(void* ptr);<br/>
 
-\# mutexes
-int mutex_init(mutex_t* lock);
-int mutex_lock(mutex_t* lock);
-int mutex_unlock(mutex_t* lock);
+\# mutexes<br/>
+int mutex_init(mutex_t* lock);<br/>
+int mutex_lock(mutex_t* lock);<br/>
+int mutex_unlock(mutex_t* lock);<br/>
 
 Shared Memory:
 

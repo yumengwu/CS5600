@@ -15,17 +15,17 @@ Once you’ve completed the C program, rewrite it in both AMD64 assembly and i38
 
 Sample interactions:
 
-\$ ./fib64 0
-fib(0) = 0
-\$ ./cfib 10
-fib(10) = 55
-\$ ./fib32 10
-fib(10) = 55
-\$ ./fib64
-Usage: ./fib N, where N >= 0
-\$ ./cfib -4
-Usage: ./fib N, where N >= 0
-\$
+\$ ./fib64 0<br/>
+fib(0) = 0<br/>
+\$ ./cfib 10<br/>
+fib(10) = 55<br/>
+\$ ./fib32 10<br/>
+fib(10) = 55<br/>
+\$ ./fib64<br/>
+Usage: ./fib N, where N >= 0<br/>
+\$ ./cfib -4<br/>
+Usage: ./fib N, where N >= 0<br/>
+\$<br/>
 
 Each function in your assembly program should follow the conventions discussed in class. Include variable mapping comments in your assembly: for each variable in the C code, where is that value stored in the assembly code?
 
@@ -37,18 +37,18 @@ Once you have a working C program, write versions in amd64 and i386 assembly. Th
 
 You should support the the following arithemetic operations on long integers: (+, -, *, /). Invalid input should print a usage message.
 
-\$ ./calc32 1 + 4
-1 + 4 = 5
-\$ ./ccalc 2 "*" 7
-2 * 7 = 14
-\$ ./calc64 2 / 70
-2 / 70 = 0
-\$ ./ccalc
-Usage:
-  ./ccalc N op N
-\$ ./calc32 2 AND 7
-Usage:
-  ./acalc N op N
+\$ ./calc32 1 + 4<br/>
+1 + 4 = 5<br/>
+\$ ./ccalc 2 "*" 7<br/>
+2 * 7 = 14<br/>
+\$ ./calc64 2 / 70<br/>
+2 / 70 = 0<br/>
+\$ ./ccalc<br/>
+Usage:<br/>
+  ./ccalc N op N<br/>
+\$ ./calc32 2 AND 7<br/>
+Usage:<br/>
+  ./acalc N op N<br/>
 
 Note: You need to quote “*” to make the shell happy. The argument is still just a single character.
 

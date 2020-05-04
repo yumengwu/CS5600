@@ -71,14 +71,14 @@ In addition, each subprocess should print out some text, showing that it’s act
 
 Example session:
 
-\$ ./tools/gen-input 20 data.dat
-\$ ./psort 4 data.dat
-0: start 0.0000, count 3
-1: start 7.5690, count 5
-2: start 27.1280, count 11
-3: start 95.5110, count 1
-\$ ./tools/check-sorted data.dat
-\$
+\$ ./tools/gen-input 20 data.dat<br/>
+\$ ./psort 4 data.dat<br/>
+0: start 0.0000, count 3<br/>
+1: start 7.5690, count 5<br/>
+2: start 27.1280, count 11<br/>
+3: start 95.5110, count 1<br/>
+\$ ./tools/check-sorted data.dat<br/>
+\$<br/>
 
 ### Task 1.2: Measure Parallel Speedup
 

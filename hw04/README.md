@@ -8,10 +8,10 @@ sudo apt install libexpect-perl qemu-system-x86 qemu-utils
 
 For this assignment you’ll be adding a system call:
 
-struct iostats {
-&emsp;&emsp;uint read_bytes;
-&emsp;&emsp;uint write_bytes;
-};
+struct iostats {<br/>
+&emsp;&emsp;uint read_bytes;<br/>
+&emsp;&emsp;uint write_bytes;<br/>
+};<br/>
 
 int getiostats(int fd, struct iostats* stats);
 Given a file descriptor, getiostats gets the total number of bytes read and written on that file descriptor since it was opened. Counts for file descriptors should be reset on “exec”. This information is returned in the user-supplied iostats structure. Returns 0 on success, or -1 on failure (e.g. bad file descriptor).

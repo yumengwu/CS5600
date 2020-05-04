@@ -6,9 +6,9 @@ For this assignment you’ll be building an optimized memory allocator.
 
 Specifically, our memory allocators will consist of three functions:
 
-void* malloc(size_t bytes);
-void free(void* ptr);
-void* realloc(void* ptr, size_t size);
+void* malloc(size_t bytes);<br/>
+void free(void* ptr);<br/>
+void* realloc(void* ptr, size_t size);<br/>
 
 - <font color="#e83e8c">malloc</font> allocates memory by finding an unused region of memory of the appropriate size and returning a pointer to the beginning of that region.
 - <font color="#e83e8c">free</font> takes a pointer returned by malloc and returns it to the pool of unused memory.

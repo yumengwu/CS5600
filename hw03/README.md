@@ -16,20 +16,20 @@ Perl scripts are provided in the starter code under the “tools” directory to
 
 Example session:
 
-\$ tools/gen-random.pl 4 nums.dat
-\$ tools/print-file.pl nums.dat
-35
-8
--3
-107
-\$ ./sort nums.dat
-Usage: ./sort input-file output-file
-\$ ./sort nums.dat sorted.dat
-\$ tools/print-file.pl sorted.dat
--3
-8
-35
-107
+\$ tools/gen-random.pl 4 nums.dat<br/>
+\$ tools/print-file.pl nums.dat<br/>
+35<br/>
+8<br/>
+-3<br/>
+107<br/>
+\$ ./sort nums.dat<br/>
+Usage: ./sort input-file output-file<br/>
+\$ ./sort nums.dat sorted.dat<br/>
+\$ tools/print-file.pl sorted.dat<br/>
+-3<br/>
+8<br/>
+35<br/>
+107<br/>
 
 Implementation requirements:
 - Sorting should be done in a dedicated function that takes a pointer to the array of ints and its length and then performs the sort in place.
@@ -71,23 +71,23 @@ Recommendations:
 
 In C, allocating a dynamic amount of space on the stack is simple: you can just declare a local array variable.
 
-&emsp;&emsp;int nn = // calculate size;
+&emsp;&emsp;int nn = // calculate size;<br/>
 &emsp;&emsp;int data[nn];
 
 In assembly it’s also simple. You can just move the stack pointer down to give yourself more space. Note that by moving the stack pointer this moves any other stack-pointer-relative allocations you’ve done.
 
 There is one complication: moving the stack pointer down by an unknown amount can unalign the stack pointer.
 
-&emsp;&emsp;// calculate size in %rdx
-&emsp;&emsp;sub %rdx, %rsp
-&emsp;&emsp;lea 0(%rsp), %r12 
-&emsp;&emsp;// %r12 now contains the address of your newly allocated stack space
-&emsp;&emsp;// It's the "data" variable from the C code above.
+&emsp;&emsp;// calculate size in %rdx<br/>
+&emsp;&emsp;sub %rdx, %rsp<br/>
+&emsp;&emsp;lea 0(%rsp), %r12 <br/>
+&emsp;&emsp;// %r12 now contains the address of your newly allocated stack space<br/>
+&emsp;&emsp;// It's the "data" variable from the C code above.<br/>
     
-&emsp;&emsp;// realign stack
-&emsp;&emsp;mov $15, %r10
-&emsp;&emsp;not %r10
-&emsp;&emsp;and %r10, %rsp
+&emsp;&emsp;// realign stack<br/>
+&emsp;&emsp;mov $15, %r10<br/>
+&emsp;&emsp;not %r10<br/>
+&emsp;&emsp;and %r10, %rsp<br/>
 
 ## Extra Credit
 

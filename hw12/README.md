@@ -41,25 +41,25 @@ In order to be able to see this copy-on-write versioning functionality, extend t
 
 Examples:
 
-\$ ./cowtool versions disk0.cow 
-Versions for disk0.cow:
-16 unlink /x3.txt
-15 write /x5.txt
-14 truncate /x5.txt
-13 mknod /x5.txt
-12 write /x4.txt
-11 truncate /x4.txt
-10 mknod /x4.txt
-9 write /x3.txt
-\$ ./cowtool rollback disk0.cow 15
-Rollback disk0.cow to version 15
-\$ ./cowtool ls disk0.cow
-...
-/x1.txt
-/x2.txt
-/x3.txt
-/x4.txt
-/x5.txt
+\$ ./cowtool versions disk0.cow<br/>
+Versions for disk0.cow:<br/>
+16 unlink /x3.txt<br/>
+15 write /x5.txt<br/>
+14 truncate /x5.txt<br/>
+13 mknod /x5.txt<br/>
+12 write /x4.txt<br/>
+11 truncate /x4.txt<br/>
+10 mknod /x4.txt<br/>
+9 write /x3.txt<br/>
+\$ ./cowtool rollback disk0.cow 15<br/><br/>
+Rollback disk0.cow to version 15<br/>
+\$ ./cowtool ls disk0.cow<br/>
+...<br/>
+/x1.txt<br/>
+/x2.txt<br/>
+/x3.txt<br/>
+/x4.txt<br/>
+/x5.txt<br/>
 In your list of versions, the first version in the list must be the current version, and that must be the second line of output.
 
 Your version numbers must be assigned in consecutive order, and you can assume that a 32-bit int won’t overflow.

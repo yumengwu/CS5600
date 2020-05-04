@@ -6,10 +6,10 @@ For this assignment you’ll be completing another memory allocator, this time a
 
 This time our memory allocators will consist of four functions (or macros):
 
-(macro) GC_INIT();
-void* gc_malloc(size_t bytes);
-void gc_collect();
-void gc_print_stats();
+(macro) GC_INIT();<br/>
+void* gc_malloc(size_t bytes);<br/>
+void gc_collect();<br/>
+void gc_print_stats();<br/>
 
 - <font color="#e83e8c">GC_INIT()</font> must be called first thing in main() to initialize the allocator.
 - <font color="#e83e8c">gc_malloc</font> allocates memory by finding an unused region of memory of the appropriate size and returning a pointer to the beginning of that region. This may involve doing a collection.

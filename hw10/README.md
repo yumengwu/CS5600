@@ -83,14 +83,14 @@ In addition, each worker thread should print out some text, showing that it’s 
 
 Example session:
 
-\$ ./tools/gen-input 20 data.dat
-\$ ./ssort 4 data.dat output.dat
-0: start 0.0000, count 3
-1: start 7.5690, count 5
-2: start 27.1280, count 11
-3: start 95.5110, count 1
-\$ ./tools/check-sorted output.dat
-\$
+\$ ./tools/gen-input 20 data.dat<br/>
+\$ ./ssort 4 data.dat output.dat<br/>
+0: start 0.0000, count 3<br/>
+1: start 7.5690, count 5<br/>
+2: start 27.1280, count 11<br/>
+3: start 95.5110, count 1<br/>
+\$ ./tools/check-sorted output.dat<br/>
+\$<br/>
 
 ## Task 2: Measure Parallel Speedup
 

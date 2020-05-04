@@ -8,8 +8,8 @@ For this assignment you’ll be adding improved shell functionality to xv6. This
 
 Add two new syscalls:
 
-int exit1(int status);
-int wait1(int* status);
+int exit1(int status);<br/>
+int wait1(int* status);<br/>
 
 These should act like the existing exit and wait syscalls, except passing an exit status from the child back to the waiting parent.
 
